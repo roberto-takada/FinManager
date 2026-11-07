@@ -1,0 +1,11 @@
+packages:
+  - '.'
+
+allowBuilds:
+  '@parcel/watcher': false
+  esbuild: false
+  lmdb: false
+  msgpackr-extract: false
+
+# Proteção da cadeia de suprimentos (R-08): só instala versões publicadas há pelo menos 1 dia (em minutos).
+minimumReleaseAge: 1440
