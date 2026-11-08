@@ -1,6 +1,6 @@
 # FinManager — Documento de Engenharia de Software
 
-> **Versão:** 0.10
+> **Versão:** 0.18
 > **Data:** 2026-11-05
 > **Autor:** Roberto Takada
 > **Status:** Em elaboração — arquitetura, stack, hospedagem e licença definidas (ADR-0001 a ADR-0005)
@@ -340,6 +340,49 @@ Regras de implementação:
 - **Contas e categorias em uso não podem ser excluídas** (confirmado pelo usuário em 2026-11-08). Assim nenhuma transação aponta para um item na lixeira. Pela mesma razão, uma transação só é restaurada se a conta e a categoria dela estiverem ativas. Ao restaurar uma conta ou categoria com nome já usado, o nome ganha "(restaurada)".
 - **Saldo atual** = saldo inicial + transações com data até hoje; parcelas e lançamentos futuros só contam quando a data chega.
 
+### 5.6.3 Contas a pagar/receber e calendário (implementado, RF-020 a RF-026)
+- **Conta agendada** (coleção `contasAgendadas`): única ou recorrente (mesmas regras de datas das recorrências, inclusive o ajuste de fim de mês). Cada vencimento é uma **ocorrência**, calculada sob demanda; nada é gerado com antecedência.
+- **Pagar/receber (RF-023):** cria a despesa/receita e grava `{ vencimento, transacaoId }` em `pagamentos`, na mesma gravação. O valor e a data podem diferir dos previstos (ex.: conta de luz).
+- **A situação é derivada**, nunca armazenada: paga se existe pagamento com transação **ativa**; vencida se a data passou; pendente caso contrário. Excluir a transação (pela agenda ou pela tela de transações) reabre a ocorrência; restaurá-la pela lixeira quita de novo. Assim a agenda e as transações nunca divergem.
+- Editar valor, vencimento, tipo ou repetição pede confirmação e entra no histórico; excluir a conta mantém as transações de pagamentos já feitos.
+- **Calendário (RF-021):** visões de mês e semana, semana começando no domingo (a preferência virá com RF-083). A situação aparece em texto e símbolo (○ pendente, ✓ paga/recebida, ! vencida), além de cor (RF-022).
+- **iCal (RF-025):** eventos de dia inteiro com RRULE; para dias 29 a 31 usa `BYMONTHDAY=28..N;BYSETPOS=-1`, equivalente ao ajuste de fim de mês do app. O arquivo **não é cifrado**: a interface avisa e pede confirmação.
+
+### 5.6.4 Cofrinhos (implementado, RF-030 a RF-034)
+> Decisões confirmadas pelo usuário em 2026-11-08: dinheiro separado das contas, livro-razão imutável, exclusão só sem movimentações (os demais são encerrados), regra de cálculo do RF-033 e o tratamento de RN-005 (zerar, encerrar e excluir).
+
+- **Coleção `cofrinhos`**: cada cofrinho guarda suas movimentações (depósito/retirada, valor, data, conta financeira, origem: manual, zeramento ou encerramento).
+- **Dinheiro separado das contas** (patrimônio = contas + cofrinhos): um depósito sai de uma conta e uma retirada volta para uma conta. O saldo de cada conta é o das transações mais o efeito das movimentações de **todos** os cofrinhos, inclusive encerrados (`efeitoNasContas`).
+- **Livro-razão imutável:** movimentações não são editadas nem excluídas. Por isso uma conta com movimentações de cofrinho não pode ser excluída, e um cofrinho com movimentações não pode ir para a lixeira, só ser encerrado. Do contrário, o expurgo da lixeira após 180 dias mudaria saldos passados.
+- **RN-005 d:** zerar (retirada de todo o saldo, cofrinho continua) e encerrar (retirada do saldo + `encerradoEm`, cofrinho arquivado e sem novas movimentações) exigem escolher a conta de destino, confirmar e registram evento `zeramento`/`encerramento` com o estado anterior. Excluir (só sem movimentações) segue RN-005 a.
+- **Progresso (RF-032):** percentual inteiro, arredondado para baixo; pode passar de 100%. **Planejamento (RF-033):** restante ÷ meses de calendário até o prazo (mínimo 1), arredondado para cima ao centavo. Sem prazo, com prazo vencido ou com meta atingida, mostra a situação em vez do valor.
+- O prazo, ao criar ou ao mudar, precisa ser futuro; manter um prazo já vencido na edição é aceito.
+
+### 5.6.5 Dashboard (implementado, RF-040 a RF-045)
+> Decisões confirmadas pelo usuário em 2026-11-08: personalização em página própria com botões, série do patrimônio desde o primeiro registro (máx. 12 meses, saldo inicial desde o início), despesas por categoria do mês atual (até 5 fatias) e barras com as cores `positive`/`negative` por contraste.
+
+- **Widgets** (`domain/dashboard/layout.ts`): resumo do mês (RF-040: saldo, receitas, despesas, contas a pagar), evolução do patrimônio (RF-041), despesas por categoria (RF-042), receitas x despesas (6 meses), metas, transações recentes e contas a vencer.
+- **Layout (RF-043, RF-044):** lista ordenada de `{ id, largura }` (largura 1, 2 ou 3 colunas de uma grade de 3, só em telas ≥ 1024 px; abaixo disso, tudo ocupa a linha). Fica no campo opcional `dashboard` das **preferências cifradas** (RN-001), portanto entra no backup; sem o campo, vale `LAYOUT_PADRAO`, sem migração. Ao ler, `normalizarLayout` descarta ids desconhecidos (ex.: de uma versão futura) e repetidos e corrige larguras inválidas.
+- **Personalização** em página própria (`/inicio/personalizar`), seguindo "listas só listam": botões Subir/Descer/Remover/Adicionar e um campo de largura por widget, num rascunho que só vale ao salvar ("Cancelar" descarta). Tudo opera por teclado (RNF-021): depois de mover, o foco continua no mesmo botão (ou no oposto, se ele ficou desabilitado no topo/fim) e a nova posição é anunciada em `role="status"`. Arrastar e soltar fica para depois da 1.0 (RF-046), como complemento aos botões.
+- **Período:** fixo (mês atual até hoje no resumo e nas despesas por categoria). O seletor de período do mockup é o RF-047, para depois da 1.0.
+- **Patrimônio (RF-041)** = contas ativas + cofrinhos, com as mesmas regras do saldo das contas (saldo inicial, transações até a data, efeito dos cofrinhos); guardar num cofrinho não muda o patrimônio. Um ponto por mês (último dia; no mês atual, hoje), dos últimos 12 meses, começando no mês do primeiro registro, para não desenhar meses vazios. O saldo inicial das contas vale desde o início da série (a conta não tem data de abertura).
+- **Despesas por categoria (RF-042):** mês atual até hoje (como os indicadores do resumo); subcategorias somam na principal; até 5 fatias (com mais categorias, as 4 maiores e o resto em "Outras"). Percentuais inteiros pelo método do maior resto, sempre somando 100.
+- **Gráficos (RF-045):** componente `ui/grafico` sobre o Chart.js, que recebe **unidades mínimas inteiras** (RN-006) e formata pelo `Dinheiro`. Cada gráfico tem `<canvas role="img">` com nome, uma conclusão em texto sempre visível e "Ver dados em tabela" (`<details>` com tabela gerada dos mesmos valores). Legendas em texto; variações com sinal e seta (RNF-024). Receitas/despesas usam `positive`/`negative` (contraste ≥ 3:1 nos dois temas); as fatias da rosca são separadas por borda e identificadas pela legenda. Sem animação com `prefers-reduced-motion` (RNF-028); cores lidas dos tokens e redesenho ao trocar o tema.
+- **Desempenho e CSP:** o Chart.js (só controladores e elementos usados, em `ui/grafico/chart-registrado.ts`) é carregado sob demanda: ~56 kB gzip num chunk à parte, sem mudar o carregamento inicial. Não usa `eval` nem `innerHTML` (compatível com a CSP e Trusted Types; verificado no E2E).
+
+### 5.6.6 Relatórios (implementado, RF-050 a RF-053)
+- **Períodos** (`domain/relatorios/periodo.ts`): mensal, trimestral, semestral e anual, com id estável na URL (`/relatorios?tipo=trimestral&periodo=2026-T3`), o que faz o "Voltar" do navegador funcionar. Só aparecem períodos do primeiro registro até o atual (nada de futuro). O período personalizado (RF-054) fica para depois da 1.0.
+- **Conteúdo (RF-051):** receitas, despesas e saldo (transferências não entram); despesas por categoria principal (subcategorias somam na principal), todas as categorias, com percentual inteiro pelo maior resto; evolução patrimonial (patrimônio na véspera do início e no fim de cada semana, no mensal, ou de cada mês, nos demais), com as mesmas regras do saldo das contas; cofrinhos que existiam no período (criados ou com movimentação até o fim e não encerrados antes do início), com depósitos e retiradas do período, saldo no fim, progresso e situação.
+- **Período em andamento:** os números vão até hoje, com aviso na tela; a comparação (RF-052) é com o período anterior **completo**. Categorias com gasto só no período anterior aparecem com zero e −100%.
+- **Exportação (RF-053):** CSV gerado no domínio (`relatorio-csv.ts`): `;`, vírgula decimal, UTF-8 com BOM e CRLF, para abrir direto em planilhas em português. Texto que começa com `=`, `+`, `-`, `@`, tab ou CR recebe apóstrofo (proteção contra **injeção de fórmulas**, já que nomes de categorias e cofrinhos são digitados pelo usuário). Como o CSV não é cifrado, a exportação pede confirmação, como o iCal (RF-025). O **PDF** usa a impressão do navegador ("Salvar como PDF") com CSS de impressão: menu e controles ocultos, cores claras em qualquer tema, tabelas sempre abertas e cartões sem quebra de página.
+- **Acessibilidade:** o relatório mostra tabelas visíveis (o gráfico usa `[tabela]="false"` para não repetir a tabela em `<details>`); variações têm sinal em texto; ao trocar tipo ou período, o foco fica no controle usado e o novo período é anunciado (`aria-live`).
+
+### 5.6.7 Perfil, personalização e exportação (implementado, RF-080 a RF-082, RF-084)
+- **Perfil (RF-080):** coleção cifrada `perfil` (no máximo um item: nome, e-mail, avatar). O e-mail só é validado no formato e nunca é usado para contato. Avatar: iniciais sobre 4 cores com contraste AA nos dois temas (o lilás `chart-4` não tinha cor de texto que servisse aos dois) ou foto. A foto é recortada em quadrado, reduzida para 128 × 128 e regravada como JPEG **no navegador** (`reduzir-foto.ts`), o que descarta metadados como a localização GPS; o domínio só aceita data URL PNG/JPEG/WebP em base64 (nada de SVG, que poderia conter script) e até ~280 kB. O nome aparece no menu lateral e na saudação do Início. Edição em página própria (`/perfil/editar`).
+- **Acessibilidade (RF-082):** tamanho do texto (100%, 112,5%, 125% da raiz, que escala tudo, pois a interface usa `rem`), alto contraste (tokens com ≥ 7:1, bordas visíveis e foco de 3 px, nos temas claro e escuro) e reduzir animações (desliga transições e a animação dos gráficos, além da preferência do sistema). Ficam em `preferencias.acessibilidade` (cifradas) e viram classes no `<html>` (`fonte-grande`/`fonte-maior`, `contraste-alto`, `animacoes-reduzidas`) aplicadas por `core/tema`. Como toda preferência, só valem depois do desbloqueio; a tela explica que, antes disso, o zoom do navegador resolve. Os ajustes são mesclados dentro de `DadosService.alterar`, para que cliques rápidos não se sobrescrevam.
+- **Exportar todos os dados (RF-084, parte de exportação do RF-090):** arquivo `.json` no formato da seção 5.7, cifrado com a DEK pela porta `CIFRADOR_BACKUP` (AES-256-GCM, IV novo a cada exportação, AAD `finmanager:backup:v1`). O conteúdo decifrado é `{ versao: 1, colecoes: { ...todas as coleções } }`. A importação (RF-091 a RF-099) ainda não existe; a tela avisa. Os nomes dos arquivos exportados estão no `.gitignore` (RNF-063).
+- **Dados de demonstração:** 12 meses de uso e um perfil fictício (Ana Exemplo, e-mail em `example.com`, domínio reservado), para os relatórios trimestral, semestral e anual terem comparação.
+
 ### 5.7 Formato do arquivo de backup (RN-012)
 Arquivo `.json` com um cabeçalho legível e um conteúdo totalmente cifrado:
 
@@ -347,19 +390,18 @@ Arquivo `.json` com um cabeçalho legível e um conteúdo totalmente cifrado:
 {
   "app": "FinManager",
   "formatVersion": 1,
-  "exportedAt": "2026-11-05T22:00:00Z",
+  "exportedAt": "2026-11-08T12:00:00.000Z",
   "keys": {
     "password": {
-      "kdf": { "algorithm": "PBKDF2-SHA256", "iterations": 600000, "salt": "<base64>" },
-      "wrappedDek": "<base64 — DEK cifrada pela senha mestra>"
+      "kdf": { "algoritmo": "argon2id", "memoriaKiB": 65536, "iteracoes": 10, "paralelismo": 1 },
+      "salt": "<base64>", "iv": "<base64>",
+      "dekCifrada": "<base64 — DEK cifrada pela senha mestra>"
     },
-    "recovery": {
-      "kdf": { "algorithm": "PBKDF2-SHA256", "iterations": 600000, "salt": "<base64>" },
-      "wrappedDek": "<base64 — DEK cifrada pela chave de recuperação>"
-    }
+    "recovery": { "kdf": { "...": "..." }, "salt": "<base64>", "iv": "<base64>",
+      "dekCifrada": "<base64 — DEK cifrada pela chave de recuperação>" }
   },
   "cipher": { "algorithm": "AES-256-GCM", "iv": "<base64>" },
-  "payload": "<base64 — todos os dados cifrados com a DEK>"
+  "payload": "<base64 — { versao, colecoes } cifrado com a DEK>"
 }
 ```
 
@@ -424,6 +466,7 @@ Casos de borda que DEVEM ter testes:
 - Texto **discreto por padrão**: sem valores nem descrições ("2 contas vencem amanhã"). O usuário pode optar por detalhes.
 - Cada alerta é registrado como "já notificado" para não se repetir a cada verificação.
 - Se a permissão for negada, os mesmos alertas aparecem dentro do app.
+- **Implementado:** `NotificacoesService` (verifica ao carregar os dados, a cada hora e quando a aba volta a ficar visível) com a porta `NotificadorNavegador`. A permissão só é pedida em `ativar()`, chamado pelo botão "Ativar notificações do navegador"; nada pede permissão ao carregar. Mesmo com a permissão já concedida no navegador, só notifica depois de ativado no app. A preferência (antecedência, ativas, detalhes) e o registro "já notificado" (`contaId|vencimento|dia`, guardado por 7 dias) ficam na coleção cifrada `preferencias`. A notificação agrupa todos os alertas em uma só (com `tag`), ex.: "2 contas vencem amanhã.". Os alertas também aparecem sempre na tela Início, que é a primeira após o desbloqueio.
 
 ---
 
@@ -475,13 +518,52 @@ Em uma aplicação local-first E2E, o adversário típico **não** é alguém in
 - Biblioteca de componentes base acessíveis: botão, campo de texto, campo monetário, seletor de data, diálogo, toast, tabela, gráfico com tabela alternativa.
 - Documentar cada componente com exemplos e regras de acessibilidade.
 
+### 7.1.1 Implementação (identidade visual)
+- **Fonte da verdade:** `IdentidadeVisual/` (paleta, tokens semânticos claro/escuro, tipografia, componentes, monograma FM). Os tokens estão em `src/styles.css` como variáveis `--fm-*` expostas ao Tailwind (`bg-surface`, `text-muted`, `text-positive`...). **Nunca use cores fixas** (`text-gray-700`, `bg-white`): elas quebram o modo escuro.
+- **Componentes** (`@utility` em `src/styles.css`): `botao-primario`, `botao-secundario`, `botao-suave`, `botao-perigo`, `campo`, `rotulo`, `ajuda`, `erro`, `cartao`, `aviso`, `alerta-erro`, `alerta-sucesso`, `selo-*`, `valor-kpi`, `chip-ocorrencia`, `progresso-*` e `link`. O logo é o componente `ui/logo`; gráficos usam `ui/grafico` (seção 5.6.5). `botao-acao` desabilitado fica com opacidade reduzida.
+- **Fontes embutidas** (`@fontsource-variable`: Inter, Space Grotesk, JetBrains Mono; licença OFL-1.1). A sugestão de Google Fonts da identidade não foi seguida: seria uma requisição externa (RN-011) bloqueada pela CSP. O navegador baixa só o subconjunto latino usado.
+- **Tema (RF-081):** sem escolha, o CSS segue `prefers-color-scheme` (nada é guardado e não há "piscada"). A escolha manual fica nas preferências **cifradas** (RN-001 inclui preferências) e aplica `.tema-claro`/`.tema-escuro` no `<html>` depois do desbloqueio; com o cofre bloqueado, volta a seguir o sistema.
+- **Desvios conscientes da identidade, por acessibilidade (WCAG 2.2 AA, verificados por cálculo de contraste e axe):**
+  - bordas de campos usam `--fm-border-strong` (ink-500, ≥ 3:1, critério 1.4.11); a borda sutil `--fm-border` (1,28:1) fica só em cards, onde é decorativa;
+  - links no modo escuro usam `--fm-link` = iris-300 (7,98:1), pois o primary daria 3,13:1;
+  - foco com contorno sólido de 2 px na cor `ring` (≥ 3:1), em vez de anel translúcido.
+- **Layout:** barra lateral com logo, menu (página atual por `aria-current="page"`, com cor, peso e ponto), tema e "Bloquear cofre"; em telas < 768 px vira barra superior com botão "Menu" (`aria-expanded`). Telas do cofre bloqueado usam layout centrado e simples.
+
 ### 7.2 Diretrizes de UX
-- Seguir as **10 heurísticas de Nielsen**.
+- Seguir as **10 heurísticas de Nielsen**. Como foram aplicadas:
+  1. *Visibilidade do status:* página atual no menu, botões com `aria-busy` e texto "Salvando…/Desbloqueando…", mensagens de sucesso/erro em `role="status"`/`alert`, contagem de resultados nos filtros.
+  2. *Correspondência com o mundo real:* pt-BR, R$ e datas no padrão brasileiro, termos como "cofrinho", "fatura", "a pagar".
+  3. *Controle e liberdade:* "Cancelar" com foco inicial nos diálogos, lixeira com restauração por 180 dias, desfazer pagamento.
+  4. *Consistência e padrões:* um único design system (mesmos botões, campos, cards, selos e diálogo em todas as telas).
+  5. *Prevenção de erros:* confirmação de ações significativas (RN-005), validação no campo, frase digitada para apagar o cofre.
+  6. *Reconhecer em vez de lembrar:* rótulos sempre visíveis, situação com texto + símbolo + cor, legenda no calendário.
+  7. *Flexibilidade e eficiência:* atalho "Nova transação" no Início, link "Pular para o conteúdo", navegação completa por teclado.
+  8. *Estética e minimalismo:* cards com hierarquia clara (rótulo, valor, selo), cor da marca em pouca área, rosa só para destaque.
+  9. *Reconhecer e corrigir erros:* mensagens em linguagem simples dizendo o que fazer ("Informe um valor maior que zero").
+  10. *Ajuda e documentação:* textos de ajuda junto aos campos e estados vazios que explicam o próximo passo.
 - Ação principal de cada tela evidente; atalho global para "Nova transação".
 - Feedback imediato para toda ação (salvo, sincronizando, offline, erro).
 - Estados vazios explicativos ("Você ainda não tem cofrinhos — criar o primeiro").
 - Linguagem simples, em português, sem jargão técnico.
 - Mobile-first e responsivo.
+- **Listas só listam; criar e editar têm página própria.** Cada lista mostra um botão "+ Novo/Nova…" que leva a uma página dedicada (`/contas/nova`, `/categorias/nova`, `/agenda/nova`, `/cofrinhos/novo`), e "Editar" leva à página de edição com os dados já no formulário (`/<lista>/:id/editar`; transações usam `/transacoes/:id`). Ao salvar, a página volta para a lista e a mensagem de sucesso é passada pelo serviço `AvisoNavegacao` (`features/compartilhado/aviso-navegacao.ts`), que a lista lê uma única vez e mostra em `role="status"`; erros ficam na página do formulário, em `role="alert"`.
+- **Ações por item são botões:** "Editar"/"Restaurar" usam `botao-acao` e "Excluir" usa `botao-acao-perigo` (alvo mínimo de 36 px, com `aria-label` que nomeia o item).
+- **Filtros recolhíveis:** em Transações, os filtros ficam num painel aberto pelo botão "Filtros" (`aria-expanded`/`aria-controls`), que mostra quantos filtros estão ativos; "Limpar filtros" aparece ao lado quando há algum. O resultado dos totais usa `text-positive` (> 0) ou `text-negative` (< 0), além do sinal no valor.
+- **Dashboard:** "Personalizar" ao lado de "Nova transação" leva a `/inicio/personalizar`; ao salvar, o Início mostra "Início personalizado.". Widgets se adaptam à própria largura com *container queries* (`@container`), não à da tela. Estados vazios explicam o próximo passo (ex.: "Nenhuma despesa em novembro de 2026. Registre uma transação").
+- **Cofrinho:** o detalhe mostra "Voltar para os cofrinhos" (esquerda) e "Configurações do cofrinho" (direita, só se aberto); "Depositar"/"Retirar" levam a `/cofrinhos/:id/movimentar?tipo=…`, e editar, zerar, encerrar e excluir ficam em `/cofrinhos/:id/configuracoes`.
+
+### 7.2.1 Desempenho com os estilos (RNF-030)
+Medido com `node scripts/medir-carregamento.mjs` (build de produção servido com gzip, Chromium, cache vazio, mediana de 7). Primeira tela (criar/desbloquear cofre):
+
+| Cenário | Métrica | Sem estilos | Com estilos | Diferença |
+|---|---|---|---|---|
+| Sem limitação | LCP | 68 ms | 72 ms | +4 ms |
+| 4G lento + CPU 4x | FCP | 964 ms | 1.140 ms | +176 ms |
+| 4G lento + CPU 4x | LCP | 1.504 ms | 1.656 ms | +152 ms |
+| 4G lento + CPU 4x | load | 955 ms | 1.407 ms | +452 ms |
+| — | Bytes transferidos | 133 kB | 206 kB | +73 kB (69 kB de fontes) |
+
+O LCP continua abaixo da meta de 2,5 s (RNF-030). O aumento vem das fontes (`font-display: swap`: o texto aparece antes, com a fonte do sistema).
 
 ### 7.3 Checklist de acessibilidade por componente
 - [ ] HTML semântico e hierarquia de títulos correta.
@@ -736,3 +818,11 @@ FinManager/
 | 0.8 | 2026-11-06 | Roberto Takada | Cofre implementado (RF-001 a RF-007): parâmetros do Argon2id calibrados (64 MiB, t=10), AAD por envelope, DEK não extraível, atraso progressivo, diálogo de confirmação nativo. |
 | 0.9 | 2026-11-08 | Roberto Takada | Transações implementadas (RF-010 a RF-017, exceto RF-018): armazenamento por coleção cifrada (5.6.1), regras de transações (5.6.2), histórico e lixeira (RF-075, RF-076, RF-078). |
 | 0.10 | 2026-11-08 | Roberto Takada | Decisões confirmadas (exclusão bloqueada para contas/categorias em uso, tipo como alteração significativa, recorrência excluída mantém transações). Parcelamento suspenso até o RF-100. |
+| 0.11 | 2026-11-08 | Roberto Takada | Contas a pagar/receber, calendário e notificações implementados (RF-020 a RF-026): seção 5.6.3 e detalhes de implementação em 5.10. |
+| 0.12 | 2026-11-08 | Roberto Takada | Cofrinhos implementados (RF-030 a RF-034): seção 5.6.4. |
+| 0.13 | 2026-11-08 | Roberto Takada | Decisões dos cofrinhos (5.6.4) confirmadas pelo usuário. |
+| 0.14 | 2026-11-08 | Roberto Takada | Identidade visual aplicada (7.1.1): tokens claro/escuro, fontes embutidas, tema seguindo o sistema ou escolhido (RF-081), desvios por acessibilidade, heurísticas de Nielsen (7.2) e medição de desempenho (7.2.1). |
+| 0.15 | 2026-11-08 | Roberto Takada | Padrões de interface (7.2): páginas dedicadas para criar/editar com `AvisoNavegacao`, ações por item em botões, filtros recolhíveis em Transações, cor no resultado dos totais e páginas de movimentação e configurações do cofrinho. |
+| 0.16 | 2026-11-08 | Roberto Takada | Dashboard implementada (RF-040 a RF-045): seção 5.6.5 (widgets, layout nas preferências cifradas, personalização por teclado, cálculo do patrimônio e das despesas por categoria, gráficos acessíveis com Chart.js sob demanda) e diretrizes em 7.2. |
+| 0.17 | 2026-11-08 | Roberto Takada | Decisões da dashboard confirmadas pelo usuário (5.6.5); arrastar e soltar (RF-046) e seletor de período (RF-047) adiados para depois da 1.0. |
+| 0.18 | 2026-11-08 | Roberto Takada | Relatórios (5.6.6) e perfil, acessibilidade e exportação (5.6.7) implementados; exemplo do formato de backup (5.7) atualizado para os envelopes Argon2id reais. |

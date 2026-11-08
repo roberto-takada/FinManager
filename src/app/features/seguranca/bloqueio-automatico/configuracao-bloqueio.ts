@@ -12,7 +12,7 @@ import { mensagemDeErro } from '../../cofre/compartilhado/mensagens';
   template: `
     <section class="space-y-3 cartao" aria-labelledby="titulo-bloqueio">
       <h2 id="titulo-bloqueio" class="text-xl font-semibold">Bloqueio automático</h2>
-      <p class="text-gray-700">
+      <p class="text-muted">
         Após esse tempo sem uso, o cofre é bloqueado e a senha mestra é pedida de novo.
       </p>
       <div>
@@ -30,7 +30,7 @@ import { mensagemDeErro } from '../../cofre/compartilhado/mensagens';
           }
         </select>
       </div>
-      <p role="status" class="text-sm text-gray-700">{{ status() }}</p>
+      <p role="status" class="text-sm text-muted">{{ status() }}</p>
     </section>
   `,
 })

@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="FinManager">
+  <style>
+    .bg { fill: #FFFFFF; } .ink { stroke: #16132E; }
+    @media (prefers-color-scheme: dark) { .bg { fill: #16132E; } .ink { stroke: #FFFFFF; } }
+  </style>
+  <rect class="bg" width="64" height="64" rx="14"/>
+  <path class="ink" d="M12 46V18h12M12 31h10" fill="none" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+  <path class="ink" d="M35 46V18l8 14 8-14" fill="none" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M51 18v28" fill="none" stroke="#E06183" stroke-width="6" stroke-linecap="round"/>
+</svg>

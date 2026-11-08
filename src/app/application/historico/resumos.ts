@@ -1,4 +1,6 @@
+import { type ContaAgendada, TIPOS_CONTA_AGENDADA } from '../../domain/agenda/conta-agendada';
 import { type Categoria, rotuloCategoria } from '../../domain/categorias/categoria';
+import { type Cofrinho, saldoCofrinho } from '../../domain/cofrinhos/cofrinho';
 import { type ContaFinanceira, TIPOS_CONTA } from '../../domain/contas/conta';
 import { FREQUENCIAS, type Recorrencia } from '../../domain/recorrencias/recorrencia';
 import { formatarData } from '../../domain/shared/data';
@@ -17,3 +19,9 @@ export const resumoCategoria = (c: Categoria, todas: readonly Categoria[]) =>
 
 export const resumoRecorrencia = (r: Recorrencia) =>
   `${r.modelo.descricao || 'Recorrência'} — ${formatarDinheiro(r.modelo.valor)}, ${FREQUENCIAS[r.frequencia].toLowerCase()}`;
+
+export const resumoContaAgendada = (c: ContaAgendada) =>
+  `${TIPOS_CONTA_AGENDADA[c.tipo]}: ${c.descricao} — ${formatarDinheiro(c.valor)}, vence em ${formatarData(c.vencimento)}${c.recorrencia ? ` (${FREQUENCIAS[c.recorrencia.frequencia].toLowerCase()})` : ''}`;
+
+export const resumoCofrinho = (c: Cofrinho) =>
+  `${c.nome} — ${formatarDinheiro(saldoCofrinho(c))} de ${formatarDinheiro(c.meta)}`;

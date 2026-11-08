@@ -59,7 +59,10 @@ export function validarDadosRecorrencia(dados: DadosRecorrencia): DadosRecorrenc
 }
 
 /** A n-ésima data da série, sempre calculada a partir do início (não acumula ajustes). */
-export function dataDaOcorrencia(recorrencia: DadosRecorrencia, indice: number): DataISO {
+/** Uma série de datas: usada por recorrências (RF-012) e por contas agendadas (RF-020). */
+export type Serie = Pick<DadosRecorrencia, 'frequencia' | 'inicio'>;
+
+export function dataDaOcorrencia(recorrencia: Serie, indice: number): DataISO {
   switch (recorrencia.frequencia) {
     case 'semanal':
       return somarSemanas(recorrencia.inicio, indice);

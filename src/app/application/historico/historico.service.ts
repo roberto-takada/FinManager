@@ -4,7 +4,14 @@ import { ativo, type Entidade, normalizarTexto } from '../../domain/shared/entid
 import { ErroDominio } from '../../domain/shared/erro-dominio';
 import { substituir } from '../dados/colecoes';
 import { type Colecoes, DadosService } from '../dados/dados.service';
-import { resumoCategoria, resumoConta, resumoRecorrencia, resumoTransacao } from './resumos';
+import {
+  resumoCategoria,
+  resumoCofrinho,
+  resumoConta,
+  resumoContaAgendada,
+  resumoRecorrencia,
+  resumoTransacao,
+} from './resumos';
 
 export interface ItemLixeira {
   readonly entidade: TipoEntidade;
@@ -14,11 +21,16 @@ export interface ItemLixeira {
   readonly diasRestantes: number;
 }
 
-const COLECAO: Record<TipoEntidade, 'transacoes' | 'contas' | 'categorias' | 'recorrencias'> = {
+const COLECAO: Record<
+  TipoEntidade,
+  'transacoes' | 'contas' | 'categorias' | 'recorrencias' | 'contasAgendadas' | 'cofrinhos'
+> = {
   transacao: 'transacoes',
   conta: 'contas',
   categoria: 'categorias',
   recorrencia: 'recorrencias',
+  contaAgendada: 'contasAgendadas',
+  cofrinho: 'cofrinhos',
 };
 
 /** Histórico de ações e lixeira (RN-004, RF-075, RF-076). */
@@ -50,6 +62,10 @@ export class HistoricoService {
       ...c.recorrencias
         .filter((e) => !ativo(e))
         .map((e) => item('recorrencia', e, resumoRecorrencia(e))),
+      ...c.contasAgendadas
+        .filter((e) => !ativo(e))
+        .map((e) => item('contaAgendada', e, resumoContaAgendada(e))),
+      ...c.cofrinhos.filter((e) => !ativo(e)).map((e) => item('cofrinho', e, resumoCofrinho(e))),
     ].sort((a, b) => b.excluidoEm.localeCompare(a.excluidoEm));
   });
 
@@ -111,6 +127,17 @@ function verificarDependencias(entidade: TipoEntidade, item: Entidade, atual: Co
     );
     exigir(
       categoriaAtiva(d.categoriaId),
+      'A categoria deste item está na lixeira. Restaure a categoria primeiro.',
+    );
+  }
+  if (entidade === 'contaAgendada') {
+    const conta = item as Colecoes['contasAgendadas'][number];
+    exigir(
+      contaAtiva(conta.contaId),
+      'A conta financeira deste item está na lixeira. Restaure-a primeiro.',
+    );
+    exigir(
+      categoriaAtiva(conta.categoriaId),
       'A categoria deste item está na lixeira. Restaure a categoria primeiro.',
     );
   }

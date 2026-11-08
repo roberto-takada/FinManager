@@ -61,11 +61,12 @@ export class CategoriasService {
       }
       const emUso =
         atual.transacoes.filter((t) => ativo(t) && t.categoriaId === id).length +
-        atual.recorrencias.filter((r) => ativo(r) && r.modelo.categoriaId === id).length;
+        atual.recorrencias.filter((r) => ativo(r) && r.modelo.categoriaId === id).length +
+        atual.contasAgendadas.filter((c) => ativo(c) && c.categoriaId === id).length;
       if (emUso > 0) {
         throw new ErroDominio(
           'categoria-em-uso',
-          `"${categoria.nome}" é usada em ${emUso} ${emUso === 1 ? 'transação ou recorrência' : 'transações ou recorrências'}. Troque a categoria delas antes.`,
+          `"${categoria.nome}" é usada em ${emUso} ${emUso === 1 ? 'item' : 'itens'} (transações, recorrências ou contas a pagar/receber). Troque a categoria deles antes.`,
         );
       }
       const instante = this.dados.agora().toISOString();

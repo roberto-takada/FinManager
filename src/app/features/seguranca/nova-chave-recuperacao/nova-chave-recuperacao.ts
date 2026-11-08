@@ -31,7 +31,7 @@ import { sortear } from '../../cofre/compartilhado/validadores';
   template: `
     <section class="space-y-5 cartao" aria-labelledby="titulo-nova-chave">
       <h2 id="titulo-nova-chave" class="text-xl font-semibold">Chave de recuperação</h2>
-      <p class="text-gray-700">
+      <p class="text-muted">
         Gere uma nova chave se a atual foi perdida ou pode ter sido vista por outra pessoa. A chave
         atual deixa de funcionar assim que a nova for salva.
       </p>

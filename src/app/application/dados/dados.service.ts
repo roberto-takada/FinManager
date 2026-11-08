@@ -1,6 +1,10 @@
 import { computed, effect, inject, Injectable, signal, untracked } from '@angular/core';
 import { type Categoria, montarCategoriasPadrao } from '../../domain/categorias/categoria';
+import type { ContaAgendada } from '../../domain/agenda/conta-agendada';
+import type { Cofrinho } from '../../domain/cofrinhos/cofrinho';
 import type { ContaFinanceira } from '../../domain/contas/conta';
+import type { Perfil } from '../../domain/perfil/perfil';
+import { type Preferencias, PREFERENCIAS_PADRAO } from '../../domain/shared/preferencias';
 import {
   criarEvento,
   type EventoHistorico,
@@ -27,6 +31,14 @@ export interface Colecoes {
   readonly transacoes: readonly Transacao[];
   readonly recorrencias: readonly Recorrencia[];
   readonly historico: readonly EventoHistorico[];
+  /** Contas a pagar e a receber (RF-020). */
+  readonly contasAgendadas: readonly ContaAgendada[];
+  /** Cofrinhos com suas movimentações (RF-030 a RF-034). */
+  readonly cofrinhos: readonly Cofrinho[];
+  /** No máximo um item (ver Preferencias). */
+  readonly preferencias: readonly Preferencias[];
+  /** No máximo um item (RF-080). */
+  readonly perfil: readonly Perfil[];
 }
 
 export type EstadoDados = 'bloqueado' | 'carregando' | 'pronto' | 'erro';
@@ -37,6 +49,10 @@ const VAZIO: Colecoes = {
   transacoes: [],
   recorrencias: [],
   historico: [],
+  contasAgendadas: [],
+  cofrinhos: [],
+  preferencias: [],
+  perfil: [],
 };
 
 /**
@@ -65,6 +81,11 @@ export class DadosService {
   readonly transacoes = computed(() => this._colecoes().transacoes);
   readonly recorrencias = computed(() => this._colecoes().recorrencias);
   readonly historico = computed(() => this._colecoes().historico);
+  readonly contasAgendadas = computed(() => this._colecoes().contasAgendadas);
+  readonly cofrinhos = computed(() => this._colecoes().cofrinhos);
+  readonly preferencias = computed(() => this._colecoes().preferencias[0] ?? PREFERENCIAS_PADRAO);
+  /** Perfil (RF-080); `null` enquanto o usuário não preencheu nada. */
+  readonly perfil = computed(() => this._colecoes().perfil[0] ?? null);
 
   private carregamento: Promise<void> | null = null;
   private fila: Promise<unknown> = Promise.resolve();
@@ -174,7 +195,17 @@ export class DadosService {
       const dek = this.cofre.chaveDeDados();
       const lidas = await Promise.all(COLECOES.map((c) => this.armazenamento.ler(dek, c)));
       if (sessao !== this.sessao) return;
-      const [contas, categorias, transacoes, recorrencias, historico] = lidas;
+      const [
+        contas,
+        categorias,
+        transacoes,
+        recorrencias,
+        historico,
+        contasAgendadas,
+        cofrinhos,
+        preferencias,
+        perfil,
+      ] = lidas;
 
       let colecoes: Colecoes = {
         contas: (contas ?? []) as ContaFinanceira[],
@@ -182,6 +213,10 @@ export class DadosService {
         transacoes: (transacoes ?? []) as Transacao[],
         recorrencias: (recorrencias ?? []) as Recorrencia[],
         historico: (historico ?? []) as EventoHistorico[],
+        contasAgendadas: (contasAgendadas ?? []) as ContaAgendada[],
+        cofrinhos: (cofrinhos ?? []) as Cofrinho[],
+        preferencias: (preferencias ?? []) as Preferencias[],
+        perfil: (perfil ?? []) as Perfil[],
       };
       const mudancas: Partial<Record<Colecao, readonly unknown[]>> = {};
 
@@ -201,8 +236,17 @@ export class DadosService {
         categorias: expurgar(colecoes.categorias, agora),
         transacoes: expurgar(colecoes.transacoes, agora),
         recorrencias: expurgar(colecoes.recorrencias, agora),
+        contasAgendadas: expurgar(colecoes.contasAgendadas, agora),
+        cofrinhos: expurgar(colecoes.cofrinhos, agora),
       };
-      for (const nome of ['contas', 'categorias', 'transacoes', 'recorrencias'] as const) {
+      for (const nome of [
+        'contas',
+        'categorias',
+        'transacoes',
+        'recorrencias',
+        'contasAgendadas',
+        'cofrinhos',
+      ] as const) {
         if (expurgadas[nome].length !== colecoes[nome].length) mudancas[nome] = expurgadas[nome];
       }
       colecoes = { ...colecoes, ...expurgadas };

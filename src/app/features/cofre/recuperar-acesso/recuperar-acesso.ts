@@ -20,8 +20,8 @@ import { camposIguais, formatoChaveRecuperacao, senhaForte } from '../compartilh
   template: `
     <div class="space-y-6">
       <div>
-        <h1 tabindex="-1" class="text-3xl font-bold text-gray-900">Recuperar acesso</h1>
-        <p class="mt-2 text-gray-700">
+        <h1 tabindex="-1" class="text-3xl font-bold text-foreground">Recuperar acesso</h1>
+        <p class="mt-2 text-muted">
           Use a chave de recuperação que você guardou ao criar o cofre para definir uma nova senha
           mestra.
         </p>

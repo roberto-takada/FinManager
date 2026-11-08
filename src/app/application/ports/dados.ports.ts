@@ -2,7 +2,16 @@ import { InjectionToken } from '@angular/core';
 import type { ChaveDeDados } from './cofre.ports';
 
 /** Coleções de dados do usuário, cada uma guardada como um bloco cifrado. */
-export type Colecao = 'contas' | 'categorias' | 'transacoes' | 'recorrencias' | 'historico';
+export type Colecao =
+  | 'contas'
+  | 'categorias'
+  | 'transacoes'
+  | 'recorrencias'
+  | 'historico'
+  | 'contasAgendadas'
+  | 'cofrinhos'
+  | 'preferencias'
+  | 'perfil';
 
 export const COLECOES: readonly Colecao[] = [
   'contas',
@@ -10,6 +19,10 @@ export const COLECOES: readonly Colecao[] = [
   'transacoes',
   'recorrencias',
   'historico',
+  'contasAgendadas',
+  'cofrinhos',
+  'preferencias',
+  'perfil',
 ];
 
 /**

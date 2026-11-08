@@ -34,8 +34,31 @@ const POR_PAGINA = 100;
         <a class="botao-primario" routerLink="/transacoes/nova">Nova transação</a>
       </div>
 
+      <div class="flex flex-wrap items-center gap-3">
+        <button
+          type="button"
+          class="botao-secundario"
+          aria-controls="painel-filtros"
+          [attr.aria-expanded]="filtrosAbertos()"
+          (click)="filtrosAbertos.set(!filtrosAbertos())"
+        >
+          <span aria-hidden="true">{{ filtrosAbertos() ? '▴' : '▾' }}</span>
+          Filtros
+          @if (filtrosAtivos() > 0) {
+            <span class="ml-1 selo-primario" data-filtros-ativos
+              >{{ filtrosAtivos() }} ativo{{ filtrosAtivos() === 1 ? '' : 's' }}</span
+            >
+          }
+        </button>
+        @if (filtrosAtivos() > 0) {
+          <button type="button" class="botao-acao" (click)="filtros.reset()">Limpar filtros</button>
+        }
+      </div>
+
       <form
+        id="painel-filtros"
         class="grid gap-4 cartao sm:grid-cols-3"
+        [hidden]="!filtrosAbertos()"
         [formGroup]="filtros"
         role="search"
         aria-label="Filtrar transações"
@@ -79,11 +102,6 @@ const POR_PAGINA = 100;
           <label class="rotulo" for="filtro-texto">Buscar</label>
           <input id="filtro-texto" class="campo" type="search" formControlName="texto" />
         </div>
-        <div class="sm:col-span-3">
-          <button type="button" class="botao-secundario" (click)="filtros.reset()">
-            Limpar filtros
-          </button>
-        </div>
       </form>
 
       <section aria-labelledby="titulo-totais" class="cartao">
@@ -91,15 +109,22 @@ const POR_PAGINA = 100;
         <dl class="mt-2 grid gap-2 sm:grid-cols-3" data-totais>
           <div>
             <dt>Receitas</dt>
-            <dd data-total="receitas">{{ formatar(totais().receitas) }}</dd>
+            <dd data-total="receitas" class="tabular-nums">{{ formatar(totais().receitas) }}</dd>
           </div>
           <div>
             <dt>Despesas</dt>
-            <dd data-total="despesas">{{ formatar(totais().despesas) }}</dd>
+            <dd data-total="despesas" class="tabular-nums">{{ formatar(totais().despesas) }}</dd>
           </div>
           <div>
             <dt>Resultado</dt>
-            <dd data-total="resultado">{{ formatar(totais().resultado) }}</dd>
+            <dd
+              data-total="resultado"
+              class="font-semibold tabular-nums"
+              [class.text-positive]="totais().resultado.unidades > 0"
+              [class.text-negative]="totais().resultado.unidades < 0"
+            >
+              {{ formatar(totais().resultado) }}
+            </dd>
           </div>
         </dl>
         <p class="ajuda">Transferências entre suas contas não entram nos totais.</p>
@@ -126,7 +151,7 @@ const POR_PAGINA = 100;
                 <th scope="col">Categoria</th>
                 <th scope="col">Conta</th>
                 <th scope="col">Tipo</th>
-                <th scope="col">Valor</th>
+                <th scope="col" class="text-right">Valor</th>
                 <th scope="col"><span class="sr-only">Ações</span></th>
               </tr>
             </thead>
@@ -138,22 +163,30 @@ const POR_PAGINA = 100;
                   <td>{{ nomeCategoria(t) }}</td>
                   <td>{{ nomeConta(t) }}</td>
                   <td>{{ tiposRotulo[t.tipo] }}</td>
-                  <td>{{ sinal(t) }}{{ formatar(t.valor) }}</td>
-                  <td class="flex gap-2">
-                    <a
-                      class="link"
-                      [routerLink]="['/transacoes', t.id]"
-                      [attr.aria-label]="'Editar ' + descricao(t)"
-                      >Editar</a
-                    >
-                    <button
-                      type="button"
-                      class="link"
-                      (click)="pedirExclusao(t)"
-                      [attr.aria-label]="'Excluir ' + descricao(t)"
-                    >
-                      Excluir
-                    </button>
+                  <td
+                    class="text-right font-semibold whitespace-nowrap tabular-nums"
+                    [class.text-positive]="t.tipo === 'receita'"
+                    [class.text-negative]="t.tipo === 'despesa'"
+                  >
+                    {{ sinal(t) }}{{ formatar(t.valor) }}
+                  </td>
+                  <td class="whitespace-nowrap">
+                    <div class="flex gap-2">
+                      <a
+                        class="botao-acao"
+                        [routerLink]="['/transacoes', t.id]"
+                        [attr.aria-label]="'Editar ' + descricao(t)"
+                        >Editar</a
+                      >
+                      <button
+                        type="button"
+                        class="botao-acao-perigo"
+                        (click)="pedirExclusao(t)"
+                        [attr.aria-label]="'Excluir ' + descricao(t)"
+                      >
+                        Excluir
+                      </button>
+                    </div>
                   </td>
                 </tr>
               }
@@ -219,6 +252,12 @@ export class ListaTransacoes {
   private readonly valoresFiltro = toSignal(this.filtros.valueChanges, {
     initialValue: this.filtros.getRawValue(),
   });
+
+  /** Filtros ficam recolhidos para não ocupar a visão inicial. */
+  protected readonly filtrosAbertos = signal(false);
+  protected readonly filtrosAtivos = computed(
+    () => Object.values(this.valoresFiltro()).filter((v) => !!v).length,
+  );
 
   protected readonly limite = signal(POR_PAGINA);
   protected readonly alvo = signal<Transacao | null>(null);

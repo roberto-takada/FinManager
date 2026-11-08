@@ -1,0 +1,200 @@
+/* FinManager · tema para Tailwind CSS v4
+   Uso: importe este arquivo no seu CSS principal (no lugar de @import "tailwindcss").
+   Modo escuro: adicione a classe "dark" no <html>. */
+
+@import 'tailwindcss';
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* Fontes: adicione no <head>
+   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"> */
+
+@theme {
+  /* Tipografia */
+  --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --font-display: 'Space Grotesk', 'Inter', ui-sans-serif, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+
+  /* Raios (lg = canto do ícone) */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 20px;
+
+  /* Sombras */
+  --shadow-card: 0 1px 2px rgb(22 19 46 / 0.06), 0 4px 12px rgb(22 19 46 / 0.06);
+
+  /* Escalas da marca */
+  --color-aqua-50: #edfdfc;
+  --color-aqua-100: #d2faf9;
+  --color-aqua-200: #a9f4f2;
+  --color-aqua-300: #75e9e6; /* Electric Aqua */
+  --color-aqua-400: #3fd6d3;
+  --color-aqua-500: #1fb9b7;
+  --color-aqua-600: #159593;
+  --color-aqua-700: #157675;
+  --color-aqua-800: #155e5e;
+  --color-aqua-900: #134e4e;
+  --color-aqua-950: #062f30;
+
+  --color-iris-50: #f4efff;
+  --color-iris-100: #eae1ff;
+  --color-iris-200: #d6c5ff;
+  --color-iris-300: #bb9cff;
+  --color-iris-400: #a274ff;
+  --color-iris-500: #8b51ff; /* Medium Slate Blue */
+  --color-iris-600: #7a35f5;
+  --color-iris-700: #6826db;
+  --color-iris-800: #5621b3;
+  --color-iris-900: #471d91;
+  --color-iris-950: #2b0f63;
+
+  --color-blush-50: #fdf2f5;
+  --color-blush-100: #fbe6ec;
+  --color-blush-200: #f7ceda;
+  --color-blush-300: #f0a6bb;
+  --color-blush-400: #e87e9c;
+  --color-blush-500: #e06183; /* Blush Rose */
+  --color-blush-600: #cb4069;
+  --color-blush-700: #ab3055;
+  --color-blush-800: #8f2a4a;
+  --color-blush-900: #7a2843;
+  --color-blush-950: #441021;
+
+  --color-ink-50: #f7f6fb;
+  --color-ink-100: #efedf6;
+  --color-ink-200: #e4e2ec;
+  --color-ink-300: #cbc8d8;
+  --color-ink-400: #a19db5;
+  --color-ink-500: #77738e;
+  --color-ink-600: #5b5870;
+  --color-ink-700: #423f57;
+  --color-ink-800: #2a2742;
+  --color-ink-900: #1c1937;
+  --color-ink-950: #16132e;
+}
+
+/* Tokens semânticos: mudam sozinhos entre claro e escuro */
+@theme inline {
+  --color-background: var(--fm-background);
+  --color-surface: var(--fm-surface);
+  --color-surface-muted: var(--fm-surface-muted);
+  --color-border: var(--fm-border);
+  --color-foreground: var(--fm-foreground);
+  --color-muted: var(--fm-muted);
+  --color-primary: var(--fm-primary);
+  --color-primary-foreground: var(--fm-primary-foreground);
+  --color-primary-soft: var(--fm-primary-soft);
+  --color-primary-soft-foreground: var(--fm-primary-soft-foreground);
+  --color-positive: var(--fm-positive);
+  --color-positive-soft: var(--fm-positive-soft);
+  --color-negative: var(--fm-negative);
+  --color-negative-soft: var(--fm-negative-soft);
+  --color-ring: var(--fm-ring);
+  --color-chart-1: var(--fm-chart-1);
+  --color-chart-2: var(--fm-chart-2);
+  --color-chart-3: var(--fm-chart-3);
+  --color-chart-4: var(--fm-chart-4);
+  --color-chart-5: var(--fm-chart-5);
+  --color-logo-bg: var(--fm-logo-bg);
+  --color-logo-ink: var(--fm-logo-ink);
+}
+
+:root {
+  --fm-background: #f7f6fb;
+  --fm-surface: #ffffff;
+  --fm-surface-muted: #efedf6;
+  --fm-border: #e4e2ec;
+  --fm-foreground: #16132e;
+  --fm-muted: #5b5870;
+  --fm-primary: #7a35f5;
+  --fm-primary-foreground: #ffffff;
+  --fm-primary-soft: #eae1ff;
+  --fm-primary-soft-foreground: #6826db;
+  --fm-positive: #157675;
+  --fm-positive-soft: #d2faf9;
+  --fm-negative: #ab3055;
+  --fm-negative-soft: #fbe6ec;
+  --fm-ring: #8b51ff;
+  --fm-chart-1: #8b51ff;
+  --fm-chart-2: #1fb9b7;
+  --fm-chart-3: #e06183;
+  --fm-chart-4: #bb9cff;
+  --fm-chart-5: #a19db5;
+  --fm-logo-bg: #ffffff;
+  --fm-logo-ink: #16132e;
+}
+
+.dark {
+  --fm-background: #0e0c1f;
+  --fm-surface: #16132e;
+  --fm-surface-muted: #1c1937;
+  --fm-border: #2a2742;
+  --fm-foreground: #f7f6fb;
+  --fm-muted: #a19db5;
+  --fm-primary: #7a35f5;
+  --fm-primary-foreground: #ffffff;
+  --fm-primary-soft: #2b0f63;
+  --fm-primary-soft-foreground: #bb9cff;
+  --fm-positive: #75e9e6;
+  --fm-positive-soft: #062f30;
+  --fm-negative: #e87e9c;
+  --fm-negative-soft: #441021;
+  --fm-ring: #a274ff;
+  --fm-chart-1: #8b51ff;
+  --fm-chart-2: #75e9e6;
+  --fm-chart-3: #e06183;
+  --fm-chart-4: #bb9cff;
+  --fm-chart-5: #a19db5;
+  --fm-logo-bg: #16132e;
+  --fm-logo-ink: #ffffff;
+}
+
+@layer base {
+  body {
+    @apply bg-background font-sans text-foreground antialiased;
+  }
+  h1,
+  h2,
+  h3 {
+    @apply font-display;
+  }
+}
+
+/* Componentes prontos (opcionais). Em v4, @utility permite usar com @apply e variantes. */
+@utility fm-card {
+  @apply rounded-lg border border-border bg-surface p-5;
+}
+@utility fm-btn {
+  @apply inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-md px-[18px] font-semibold focus-visible:ring-3 focus-visible:ring-ring/40 focus-visible:outline-none;
+}
+@utility fm-btn-primary {
+  @apply fm-btn bg-primary text-primary-foreground hover:bg-iris-700;
+}
+@utility fm-btn-secondary {
+  @apply fm-btn border border-border bg-surface text-foreground hover:bg-surface-muted;
+}
+@utility fm-btn-soft {
+  @apply fm-btn bg-primary-soft text-primary-soft-foreground;
+}
+@utility fm-btn-danger {
+  @apply fm-btn bg-negative-soft text-negative;
+}
+@utility fm-input {
+  @apply min-h-11 rounded-md border border-border bg-surface px-3.5 text-foreground focus:border-ring focus:ring-3 focus:ring-ring/30 focus:outline-none;
+}
+@utility fm-badge {
+  @apply inline-flex rounded-full px-2.5 py-1 text-xs font-semibold;
+}
+@utility fm-badge-positive {
+  @apply fm-badge bg-positive-soft text-positive;
+}
+@utility fm-badge-negative {
+  @apply fm-badge bg-negative-soft text-negative;
+}
+@utility fm-badge-primary {
+  @apply fm-badge bg-primary-soft text-primary-soft-foreground;
+}
+@utility fm-kpi-value {
+  @apply font-display text-[28px] font-semibold tabular-nums;
+}

@@ -17,8 +17,8 @@ import { mensagemDeErro } from '../compartilhado/mensagens';
   template: `
     <div class="space-y-6">
       <div>
-        <h1 tabindex="-1" class="text-3xl font-bold text-gray-900">Apagar o cofre</h1>
-        <p class="mt-2 text-gray-700">
+        <h1 tabindex="-1" class="text-3xl font-bold text-foreground">Apagar o cofre</h1>
+        <p class="mt-2 text-muted">
           Esta ação apaga definitivamente <strong>todos os seus dados</strong> deste navegador. Ela
           não pode ser desfeita.
         </p>

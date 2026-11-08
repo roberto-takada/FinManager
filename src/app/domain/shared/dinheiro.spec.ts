@@ -2,6 +2,7 @@ import {
   dinheiro,
   dividirEmParcelas,
   formatarDinheiro,
+  formatarDinheiroCompacto,
   lerDinheiro,
   paraTextoEditavel,
   somar,
@@ -79,6 +80,11 @@ describe('Dinheiro (RN-006)', () => {
   it('formata no padrão brasileiro', () => {
     expect(formatarDinheiro(brl(123_456)).replace(/\s/g, ' ')).toBe('R$ 1.234,56');
     expect(formatarDinheiro(brl(-5)).replace(/\s/g, ' ')).toBe('-R$ 0,05');
+  });
+
+  it('formata curto para eixos de gráfico', () => {
+    expect(formatarDinheiroCompacto(brl(1_248_090)).replace(/\s/g, ' ')).toBe('R$ 12,5 mil');
+    expect(formatarDinheiroCompacto(brl(50_000)).replace(/\s/g, ' ')).toBe('R$ 500');
   });
 
   it('gera texto editável que pode ser lido de volta', () => {

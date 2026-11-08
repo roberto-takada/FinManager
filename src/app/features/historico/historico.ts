@@ -50,7 +50,7 @@ import { mensagemDeErro } from '../cofre/compartilhado/mensagens';
                     <td>
                       <button
                         type="button"
-                        class="link"
+                        class="botao-acao"
                         (click)="restaurar(item)"
                         [attr.aria-label]="'Restaurar ' + item.resumo"
                       >

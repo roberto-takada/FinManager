@@ -122,7 +122,7 @@ describe('DadosService', () => {
   });
 
   describe('dados de demonstração (RNF-061)', () => {
-    it('preenche um cofre vazio com 6 meses de uso fictício', async () => {
+    it('preenche um cofre vazio com 12 meses de uso fictício e um perfil', async () => {
       await amb.dados.popularDemonstracao();
 
       expect(amb.dados.contas()).toHaveLength(4);
@@ -130,9 +130,10 @@ describe('DadosService', () => {
         .transacoes()
         .map((t) => t.data)
         .sort();
-      expect(datas[0]! <= '2026-05-15').toBe(true);
-      // Recorrências geradas pelo mecanismo normal: 6 salários até hoje.
-      expect(amb.dados.transacoes().filter((t) => t.descricao === 'Salário')).toHaveLength(6);
+      expect(datas[0]! <= '2025-11-15').toBe(true);
+      // Recorrências geradas pelo mecanismo normal: 12 salários até hoje.
+      expect(amb.dados.transacoes().filter((t) => t.descricao === 'Salário')).toHaveLength(12);
+      expect(amb.dados.perfil()?.nome).toBe('Ana Exemplo');
       expect(amb.armazenamento.colecoes.get('transacoes')?.length).toBe(
         amb.dados.transacoes().length,
       );

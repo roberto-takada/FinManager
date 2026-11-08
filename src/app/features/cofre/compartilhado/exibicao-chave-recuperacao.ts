@@ -17,9 +17,9 @@ import {
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <figure class="cartao print:border-0 print:shadow-none">
-      <figcaption class="font-medium text-gray-900">Sua chave de recuperação</figcaption>
+      <figcaption class="font-medium text-foreground">Sua chave de recuperação</figcaption>
       <p
-        class="mt-3 font-mono text-xl font-semibold tracking-wider break-all text-gray-900 sm:text-2xl"
+        class="mt-3 font-mono text-xl font-semibold tracking-wider break-all text-foreground sm:text-2xl"
         data-chave-recuperacao
       >
         @for (grupo of grupos(); track $index; let ultimo = $last) {

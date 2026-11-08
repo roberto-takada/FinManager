@@ -1,3 +1,5 @@
+import { CIFRADOR_BACKUP } from '../app/application/ports/backup.ports';
+import { CifradorBackupWebCrypto } from '../app/infrastructure/backup/cifrador-backup.webcrypto';
 import { TestBed } from '@angular/core/testing';
 import { CofreService } from '../app/application/cofre/cofre.service';
 import { DadosService } from '../app/application/dados/dados.service';
@@ -10,6 +12,11 @@ import {
   GERADOR_ID,
   RELOGIO,
 } from '../app/application/ports/dados.ports';
+import {
+  NOTIFICADOR_NAVEGADOR,
+  type NotificadorNavegador,
+  type PermissaoNotificacao,
+} from '../app/application/ports/notificacoes.ports';
 import { CriptografiaCofreWebCrypto } from '../app/infrastructure/crypto/criptografia-cofre.webcrypto';
 import { PARAMETROS_KDF_TESTE, RepositorioCofreEmMemoria, SENHA_TESTE } from './cofre';
 
@@ -36,10 +43,32 @@ export class ArmazenamentoEmMemoria implements ArmazenamentoDados {
   }
 }
 
+/** Notificador falso: registra pedidos de permissão e notificações enviadas. */
+export class NotificadorFalso implements NotificadorNavegador {
+  permissaoAtual: PermissaoNotificacao = 'default';
+  /** O que o "usuário" responde quando a permissão é pedida. */
+  resposta: PermissaoNotificacao = 'granted';
+  pedidosDePermissao = 0;
+  readonly enviadas: { titulo: string; corpo: string; tag: string }[] = [];
+
+  permissao() {
+    return this.permissaoAtual;
+  }
+  async solicitarPermissao() {
+    this.pedidosDePermissao++;
+    this.permissaoAtual = this.resposta;
+    return this.resposta;
+  }
+  notificar(titulo: string, corpo: string, tag: string) {
+    if (this.permissaoAtual === 'granted') this.enviadas.push({ titulo, corpo, tag });
+  }
+}
+
 export interface AmbienteDados {
   readonly cofre: CofreService;
   readonly dados: DadosService;
   readonly armazenamento: ArmazenamentoEmMemoria;
+  readonly notificador: NotificadorFalso;
   /** Muda o "agora" do app. */
   definirAgora(instante: string): void;
   /** Bloqueia e desbloqueia o cofre (como ao reabrir o app), esperando os dados carregarem. */
@@ -52,6 +81,7 @@ export async function prepararAmbienteDados(
   armazenamento = new ArmazenamentoEmMemoria(),
 ): Promise<AmbienteDados> {
   let agora = new Date(agoraInicial);
+  const notificador = new NotificadorFalso();
   let id = 0;
   TestBed.configureTestingModule({
     providers: [
@@ -63,6 +93,8 @@ export async function prepararAmbienteDados(
       { provide: ARMAZENAMENTO_DADOS, useValue: armazenamento },
       { provide: RELOGIO, useValue: () => agora },
       { provide: GERADOR_ID, useValue: () => `id-${++id}` },
+      { provide: NOTIFICADOR_NAVEGADOR, useValue: notificador },
+      { provide: CIFRADOR_BACKUP, useValue: new CifradorBackupWebCrypto() },
     ],
   });
   const cofre = TestBed.inject(CofreService);
@@ -75,6 +107,7 @@ export async function prepararAmbienteDados(
     cofre,
     dados,
     armazenamento,
+    notificador,
     definirAgora: (instante) => {
       agora = new Date(instante);
     },

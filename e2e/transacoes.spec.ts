@@ -16,10 +16,12 @@ function data(mesesAtras = 0, dia?: number): string {
 
 async function criarConta(page: Page, nome: string, saldo = '0,00', tipo = 'Conta corrente') {
   await irPeloMenu(page, 'Contas');
+  await page.getByRole('link', { name: 'Nova conta' }).click();
   await page.getByLabel('Nome da conta').fill(nome);
   await page.getByLabel('Tipo de conta').selectOption({ label: tipo });
   await page.getByLabel('Saldo inicial (R$)').fill(saldo);
-  await page.getByRole('button', { name: 'Adicionar conta' }).click();
+  await page.getByRole('button', { name: 'Salvar conta' }).click();
+  await expect(page.getByRole('status').filter({ hasText: 'Conta adicionada.' })).toBeVisible();
   await expect(page.locator('tr[data-conta]', { hasText: nome })).toBeVisible();
 }
 
@@ -236,6 +238,11 @@ test.describe('Transações (RF-010, RF-011, US-001)', () => {
     });
 
     await expect(page.locator('tr[data-transacao]')).toHaveCount(3);
+    await expect(page.getByLabel('Buscar')).toBeHidden();
+    const botaoFiltros = page.getByRole('button', { name: /Filtros/ });
+    await expect(botaoFiltros).toHaveAttribute('aria-expanded', 'false');
+    await botaoFiltros.click();
+    await expect(botaoFiltros).toHaveAttribute('aria-expanded', 'true');
     await page.getByLabel('Buscar').fill('acucar');
     await expect(page.locator('tr[data-transacao]')).toHaveCount(1);
     await page.getByRole('button', { name: 'Limpar filtros' }).click();
@@ -243,10 +250,13 @@ test.describe('Transações (RF-010, RF-011, US-001)', () => {
     await page.getByLabel('Tipo', { exact: true }).selectOption({ label: 'Receita' });
     await expect(page.locator('tr[data-transacao]')).toHaveCount(1);
     await expect(page.locator('[data-total="receitas"]')).toContainText('500,00');
+    await expect(page.locator('[data-total="resultado"]')).toHaveClass(/text-positive/);
+    await expect(botaoFiltros).toContainText('1 ativo');
     await page.getByRole('button', { name: 'Limpar filtros' }).click();
 
     await page.getByLabel('Categoria').selectOption({ label: 'Alimentação' });
     await expect(page.locator('tr[data-transacao]')).toHaveCount(2);
+    await expect(page.locator('[data-total="resultado"]')).toHaveClass(/text-negative/);
     await page.getByLabel('De', { exact: true }).fill(data());
     await expect(page.locator('tr[data-transacao]')).toHaveCount(1);
     await expect(page.getByRole('status')).toContainText('1 transação encontrada');
@@ -258,12 +268,14 @@ test.describe('Categorias e contas (RF-015, RF-016)', () => {
     await criarCofre(page);
     await criarConta(page, 'Banco Teste');
     await irPeloMenu(page, 'Categorias');
+    await page.getByRole('link', { name: 'Nova categoria' }).click();
     await page.getByLabel('Nome da categoria').fill('Pets');
-    await page.getByRole('button', { name: 'Adicionar categoria' }).click();
+    await page.getByRole('button', { name: 'Salvar categoria' }).click();
     await expect(page.locator('li[data-categoria]', { hasText: 'Pets' })).toBeVisible();
+    await page.getByRole('link', { name: 'Nova categoria' }).click();
     await page.getByLabel('Nome da categoria').fill('Ração');
     await page.getByLabel('Subcategoria de (opcional)').selectOption({ label: 'Pets' });
-    await page.getByRole('button', { name: 'Adicionar categoria' }).click();
+    await page.getByRole('button', { name: 'Salvar categoria' }).click();
     await expect(page.locator('li[data-categoria]', { hasText: 'Ração' })).toBeVisible();
 
     await novaTransacao(page, {
@@ -278,7 +290,25 @@ test.describe('Categorias e contas (RF-015, RF-016)', () => {
       .getByRole('button', { name: /Excluir/ })
       .click();
     await page.getByRole('dialog').getByRole('button', { name: 'Excluir categoria' }).click();
-    await expect(page.getByRole('alert')).toContainText('é usada em 1 transação');
+    await expect(page.getByRole('alert')).toContainText('é usada em 1 item');
+  });
+});
+
+test.describe('Páginas de edição', () => {
+  test('Editar abre a página com os dados do item já no formulário', async ({ page }) => {
+    await criarCofre(page);
+    await criarConta(page, 'Banco Teste', '150,00');
+    await page
+      .locator('tr[data-conta]', { hasText: 'Banco Teste' })
+      .getByRole('link', { name: /Editar/ })
+      .click();
+    await expect(page.getByRole('heading', { level: 1, name: 'Editar conta' })).toBeVisible();
+    await expect(page.getByLabel('Nome da conta')).toHaveValue('Banco Teste');
+    await expect(page.getByLabel('Saldo inicial (R$)')).toHaveValue('150,00');
+    await page.getByLabel('Nome da conta').fill('Banco Renomeado');
+    await page.getByRole('button', { name: 'Salvar conta' }).click();
+    await expect(page.getByRole('status').filter({ hasText: 'Conta salva.' })).toBeVisible();
+    await expect(page.locator('tr[data-conta]', { hasText: 'Banco Renomeado' })).toBeVisible();
   });
 });
 
@@ -311,7 +341,7 @@ test.describe('Persistência e criptografia (RN-001, RNF-004)', () => {
 });
 
 test.describe('Dados de demonstração (RNF-061)', () => {
-  test('cria o cofre com 6 meses de uso fictício', async ({ page, monitor }) => {
+  test('cria o cofre com 12 meses de uso fictício', async ({ page, monitor }) => {
     await criarCofre(page, undefined, { demonstracao: true });
 
     await irPeloMenu(page, 'Contas');
@@ -320,8 +350,9 @@ test.describe('Dados de demonstração (RNF-061)', () => {
     await expect(page.locator('tr[data-recorrencia]')).toHaveCount(6);
     await irPeloMenu(page, 'Transações');
     await expect(page.getByRole('status')).toContainText(/\d{3,} transações encontradas/);
+    await page.getByRole('button', { name: /Filtros/ }).click();
     await page.getByLabel('Buscar').fill('Salário');
-    await expect(linha(page, 'Salário')).toHaveCount(6);
+    await expect(linha(page, 'Salário')).toHaveCount(12);
     await page.getByRole('button', { name: 'Limpar filtros' }).click();
 
     await page.getByLabel('De', { exact: true }).fill(data(6, 1));

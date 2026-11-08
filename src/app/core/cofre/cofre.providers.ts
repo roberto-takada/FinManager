@@ -16,6 +16,11 @@ import { ArmazenamentoDadosIdb } from '../../infrastructure/storage/armazenament
 import { BancoIdb } from '../../infrastructure/storage/banco-idb';
 import { DadosService } from '../../application/dados/dados.service';
 import { ARMAZENAMENTO_DADOS } from '../../application/ports/dados.ports';
+import { NotificacoesService } from '../../application/agenda/notificacoes.service';
+import { NOTIFICADOR_NAVEGADOR } from '../../application/ports/notificacoes.ports';
+import { NotificadorNavegadorWeb } from '../../infrastructure/notificacoes/notificador-navegador';
+import { CIFRADOR_BACKUP } from '../../application/ports/backup.ports';
+import { CifradorBackupWebCrypto } from '../../infrastructure/backup/cifrador-backup.webcrypto';
 import { rotaPorEstado } from './cofre.guards';
 
 /** Liga as portas do cofre aos adaptadores reais e ativa os comportamentos globais. */
@@ -26,9 +31,13 @@ export function provideCofre(): EnvironmentProviders {
     { provide: BancoIdb, useFactory: () => new BancoIdb() },
     { provide: REPOSITORIO_COFRE, useFactory: () => new RepositorioCofreIdb(inject(BancoIdb)) },
     { provide: ARMAZENAMENTO_DADOS, useFactory: () => new ArmazenamentoDadosIdb(inject(BancoIdb)) },
+    { provide: CIFRADOR_BACKUP, useFactory: () => new CifradorBackupWebCrypto() },
     provideEnvironmentInitializer(() => inject(BloqueioAutomaticoService)),
     // Carrega os dados ao desbloquear e os descarta ao bloquear.
     provideEnvironmentInitializer(() => inject(DadosService)),
+    { provide: NOTIFICADOR_NAVEGADOR, useFactory: () => new NotificadorNavegadorWeb() },
+    // Verifica vencimentos enquanto o cofre estiver desbloqueado (RF-024).
+    provideEnvironmentInitializer(() => inject(NotificacoesService)),
     provideEnvironmentInitializer(redirecionarAoPerderAcesso),
   ]);
 }

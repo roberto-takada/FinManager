@@ -1,4 +1,14 @@
-import { compararDatas, dataLocal, ehDataISO, somarAnos, somarMeses, somarSemanas } from './data';
+import {
+  compararDatas,
+  dataLocal,
+  ehDataISO,
+  intervaloDoMes,
+  nomeDoMes,
+  somarAnos,
+  somarMeses,
+  somarSemanas,
+  variacaoPercentual,
+} from './data';
 
 describe('datas de calendário', () => {
   it('valida o formato AAAA-MM-DD e datas reais', () => {
@@ -29,5 +39,14 @@ describe('datas de calendário', () => {
 
   it('usa a data local do instante', () => {
     expect(dataLocal(new Date(2026, 10, 8, 23, 59))).toBe('2026-11-08');
+  });
+
+  it('intervalo e nome do mês, variação percentual', () => {
+    expect(intervaloDoMes('2028-02-10')).toEqual(['2028-02-01', '2028-02-29']);
+    expect(nomeDoMes('2026-11-08')).toBe('novembro de 2026');
+    expect(nomeDoMes('2026-10-08', false)).toBe('outubro');
+    expect(variacaoPercentual(10_700, 10_000)).toBe(7);
+    expect(variacaoPercentual(9_390, 10_000)).toBe(-6.1);
+    expect(variacaoPercentual(5, 0)).toBeNull();
   });
 });

@@ -1,4 +1,6 @@
+import type { ContaAgendada } from '../app/domain/agenda/conta-agendada';
 import type { Categoria } from '../app/domain/categorias/categoria';
+import type { Cofrinho, MovimentacaoCofrinho } from '../app/domain/cofrinhos/cofrinho';
 import type { ContaFinanceira } from '../app/domain/contas/conta';
 import type { Recorrencia } from '../app/domain/recorrencias/recorrencia';
 import { dinheiro } from '../app/domain/shared/dinheiro';
@@ -56,6 +58,48 @@ export function umaRecorrencia(dados: Partial<Recorrencia> = {}): Recorrencia {
     inicio: '2026-01-31',
     fim: null,
     geradaAte: null,
+    ...dados,
+  };
+}
+
+export function umaContaAgendada(dados: Partial<ContaAgendada> = {}): ContaAgendada {
+  return {
+    ...base('agendada-1'),
+    tipo: 'pagar',
+    descricao: 'Conta de luz fictícia',
+    valor: brl(18_000),
+    vencimento: '2026-11-10',
+    categoriaId: 'cat-1',
+    contaId: null,
+    recorrencia: null,
+    pagamentos: [],
+    ...dados,
+  };
+}
+
+export function umCofrinho(dados: Partial<Cofrinho> = {}): Cofrinho {
+  return {
+    ...base('cofrinho-1'),
+    nome: 'Viagem fictícia',
+    meta: brl(600_000),
+    prazo: null,
+    icone: 'viagem',
+    cor: 'azul',
+    movimentacoes: [],
+    encerradoEm: null,
+    ...dados,
+  };
+}
+
+export function umaMovimentacao(dados: Partial<MovimentacaoCofrinho> = {}): MovimentacaoCofrinho {
+  return {
+    id: 'mov-1',
+    tipo: 'deposito',
+    valor: brl(10_000),
+    data: '2026-11-01',
+    contaId: 'conta-1',
+    origem: 'manual',
+    registradoEm: INSTANTE,
     ...dados,
   };
 }

@@ -55,3 +55,9 @@ finmanager-backup-*.json
 /blob-report/
 /playwright/.cache/
 finmanager-chave-de-recuperacao*.txt
+
+# Arquivos exportados pelo app (RNF-007, RNF-063): nunca versionar
+finmanager-backup-*.json
+finmanager-relatorio-*.csv
+finmanager-calendario*.ics
+finmanager-chave-de-recuperacao*.txt

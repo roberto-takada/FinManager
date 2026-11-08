@@ -31,8 +31,8 @@ let proximoId = 0;
       [attr.aria-describedby]="id + '-descricao'"
       (cancel)="cancelarPorEsc($event)"
     >
-      <h2 [id]="id + '-titulo'" class="text-xl font-semibold text-gray-900">{{ titulo() }}</h2>
-      <div [id]="id + '-descricao'" class="mt-3 space-y-2 text-gray-800">
+      <h2 [id]="id + '-titulo'" class="text-xl font-semibold text-foreground">{{ titulo() }}</h2>
+      <div [id]="id + '-descricao'" class="mt-3 space-y-2 text-foreground">
         <p>{{ mensagem() }}</p>
         <ng-content />
       </div>

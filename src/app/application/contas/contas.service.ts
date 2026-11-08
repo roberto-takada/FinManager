@@ -1,5 +1,7 @@
 import { computed, inject, Injectable } from '@angular/core';
+import { efeitoNasContas } from '../../domain/cofrinhos/cofrinho';
 import { type ContaFinanceira, type DadosConta, validarConta } from '../../domain/contas/conta';
+import { dinheiro } from '../../domain/shared/dinheiro';
 import { ativo, ativos } from '../../domain/shared/entidade';
 import { ErroDominio } from '../../domain/shared/erro-dominio';
 import { calcularSaldos } from '../../domain/transacoes/transacao';
@@ -17,9 +19,19 @@ export class ContasService {
   );
 
   /** Saldo atual de cada conta (transações até hoje). */
-  readonly saldos = computed(() =>
-    calcularSaldos(this.dados.contas(), this.dados.transacoes(), this.dados.hoje()),
-  );
+  /**
+   * Saldo atual de cada conta: transações até hoje e o efeito dos cofrinhos (depósitos
+   * saem da conta, retiradas voltam).
+   */
+  readonly saldos = computed(() => {
+    const hoje = this.dados.hoje();
+    const saldos = calcularSaldos(this.dados.contas(), this.dados.transacoes(), hoje);
+    for (const [contaId, efeito] of efeitoNasContas(this.dados.cofrinhos(), hoje)) {
+      const saldo = saldos.get(contaId);
+      if (saldo) saldos.set(contaId, dinheiro(saldo.unidades + efeito, saldo.moeda));
+    }
+    return saldos;
+  });
 
   criar(dados: DadosConta): Promise<ContaFinanceira> {
     return this.dados.alterar((atual) => {
@@ -56,11 +68,14 @@ export class ContasService {
           .length +
         atual.recorrencias
           .filter(ativo)
-          .filter((r) => r.modelo.contaId === id || r.modelo.contaDestinoId === id).length;
+          .filter((r) => r.modelo.contaId === id || r.modelo.contaDestinoId === id).length +
+        atual.contasAgendadas.filter((c) => ativo(c) && c.contaId === id).length +
+        // Movimentações de cofrinhos (mesmo encerrados) afetam o saldo da conta.
+        atual.cofrinhos.flatMap((c) => c.movimentacoes).filter((m) => m.contaId === id).length;
       if (emUso > 0) {
         throw new ErroDominio(
           'conta-em-uso',
-          `A conta "${conta.nome}" tem ${emUso} ${emUso === 1 ? 'transação ou recorrência' : 'transações ou recorrências'}. Exclua-as ou mova-as para outra conta antes.`,
+          `A conta "${conta.nome}" é usada em ${emUso} ${emUso === 1 ? 'item' : 'itens'} (transações, recorrências ou contas a pagar/receber). Exclua-os ou troque a conta deles antes.`,
         );
       }
       const instante = this.dados.agora().toISOString();

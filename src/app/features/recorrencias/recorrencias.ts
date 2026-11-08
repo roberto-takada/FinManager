@@ -62,7 +62,7 @@ import { mensagemDeErro } from '../cofre/compartilhado/mensagens';
                   <td>
                     <button
                       type="button"
-                      class="link"
+                      class="botao-acao-perigo"
                       (click)="alvo.set(r)"
                       [attr.aria-label]="'Excluir recorrência ' + (r.modelo.descricao || '')"
                     >

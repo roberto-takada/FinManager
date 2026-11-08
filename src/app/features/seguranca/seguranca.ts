@@ -11,13 +11,13 @@ import { TrocarSenha } from './trocar-senha/trocar-senha';
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="space-y-6">
-      <h1 tabindex="-1" class="text-3xl font-bold text-gray-900">Segurança</h1>
+      <h1 tabindex="-1" class="text-3xl font-bold text-foreground">Segurança</h1>
       <app-configuracao-bloqueio />
       <app-trocar-senha />
       <app-nova-chave-recuperacao />
-      <section class="space-y-3 cartao border-red-300" aria-labelledby="titulo-perigo">
-        <h2 id="titulo-perigo" class="text-xl font-semibold text-red-800">Apagar o cofre</h2>
-        <p class="text-gray-700">Apaga definitivamente todos os seus dados deste navegador.</p>
+      <section class="space-y-3 cartao border-negative" aria-labelledby="titulo-perigo">
+        <h2 id="titulo-perigo" class="text-xl font-semibold text-negative">Apagar o cofre</h2>
+        <p class="text-muted">Apaga definitivamente todos os seus dados deste navegador.</p>
         <a class="botao-perigo" routerLink="/cofre/apagar">Apagar o cofre…</a>
       </section>
     </div>

@@ -43,7 +43,7 @@ describe('ContasService e CategoriasService (RF-015, RF-016, RN-004)', () => {
     it('não exclui conta com transações ativas', async () => {
       const conta = await contas.criar({ nome: 'Banco', tipo: 'corrente', saldoInicial: brl(0) });
       await usar(conta.id, amb.dados.categorias().find((c) => c.nome === 'Saúde')!.id);
-      await expect(contas.excluir(conta.id)).rejects.toThrow(/tem 1 transação/);
+      await expect(contas.excluir(conta.id)).rejects.toThrow(/é usada em 1 item/);
     });
 
     it('excluir e restaurar; nome repetido ganha "(restaurada)"', async () => {
@@ -75,7 +75,7 @@ describe('ContasService e CategoriasService (RF-015, RF-016, RN-004)', () => {
       const conta = await contas.criar({ nome: 'Banco', tipo: 'corrente', saldoInicial: brl(0) });
       const saude = amb.dados.categorias().find((c) => c.nome === 'Saúde')!;
       await usar(conta.id, saude.id);
-      await expect(categorias.excluir(saude.id)).rejects.toThrow(/usada em 1/);
+      await expect(categorias.excluir(saude.id)).rejects.toThrow(/é usada em 1 item/);
     });
 
     it('exclusão entra na lixeira e no histórico', async () => {

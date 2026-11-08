@@ -1,56 +1,452 @@
-@import 'tailwindcss';
-
 /*
- * Componentes base do design system (ENGENHARIA_DE_SOFTWARE §7.1).
- * Cores escolhidas para contraste ≥ 4,5:1 sobre branco (RNF-023) e foco sempre visível (RNF-021).
+ * FinManager · design system (ENGENHARIA_DE_SOFTWARE §7.1)
+ * Baseado em IdentidadeVisual/finmanager.css, com estas diferenças:
+ * - Fontes embutidas no app (sem Google Fonts): nenhuma requisição externa (RN-011, CSP).
+ * - Tema: segue o sistema por padrão (prefers-color-scheme, sem armazenar nada); a escolha
+ *   manual aplica .tema-claro ou .tema-escuro no <html> depois do desbloqueio.
+ * - Acessibilidade (WCAG 2.2 AA): bordas de campos usam --fm-border-strong (3:1, critério
+ *   1.4.11) e links no modo escuro usam --fm-link (iris-300), pois o primary ficaria 3,1:1.
  */
+@import 'tailwindcss';
+@import '@fontsource-variable/inter/wght.css';
+@import '@fontsource-variable/space-grotesk/wght.css';
+@import '@fontsource-variable/jetbrains-mono/wght.css';
+
+@theme {
+  --font-sans: 'Inter Variable', ui-sans-serif, system-ui, sans-serif;
+  --font-display: 'Space Grotesk Variable', 'Inter Variable', ui-sans-serif, sans-serif;
+  --font-mono: 'JetBrains Mono Variable', ui-monospace, monospace;
+
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 20px;
+
+  --shadow-card: 0 1px 2px rgb(22 19 46 / 0.06), 0 4px 12px rgb(22 19 46 / 0.06);
+
+  --color-aqua-50: #edfdfc;
+  --color-aqua-100: #d2faf9;
+  --color-aqua-200: #a9f4f2;
+  --color-aqua-300: #75e9e6;
+  --color-aqua-400: #3fd6d3;
+  --color-aqua-500: #1fb9b7;
+  --color-aqua-600: #159593;
+  --color-aqua-700: #157675;
+  --color-aqua-800: #155e5e;
+  --color-aqua-900: #134e4e;
+  --color-aqua-950: #062f30;
+
+  --color-iris-50: #f4efff;
+  --color-iris-100: #eae1ff;
+  --color-iris-200: #d6c5ff;
+  --color-iris-300: #bb9cff;
+  --color-iris-400: #a274ff;
+  --color-iris-500: #8b51ff;
+  --color-iris-600: #7a35f5;
+  --color-iris-700: #6826db;
+  --color-iris-800: #5621b3;
+  --color-iris-900: #471d91;
+  --color-iris-950: #2b0f63;
+
+  --color-blush-50: #fdf2f5;
+  --color-blush-100: #fbe6ec;
+  --color-blush-200: #f7ceda;
+  --color-blush-300: #f0a6bb;
+  --color-blush-400: #e87e9c;
+  --color-blush-500: #e06183;
+  --color-blush-600: #cb4069;
+  --color-blush-700: #ab3055;
+  --color-blush-800: #8f2a4a;
+  --color-blush-900: #7a2843;
+  --color-blush-950: #441021;
+
+  --color-ink-50: #f7f6fb;
+  --color-ink-100: #efedf6;
+  --color-ink-200: #e4e2ec;
+  --color-ink-300: #cbc8d8;
+  --color-ink-400: #a19db5;
+  --color-ink-500: #77738e;
+  --color-ink-600: #5b5870;
+  --color-ink-700: #423f57;
+  --color-ink-800: #2a2742;
+  --color-ink-900: #1c1937;
+  --color-ink-950: #16132e;
+}
+
+/* Tokens semânticos: mudam sozinhos entre claro e escuro. */
+@theme inline {
+  --color-background: var(--fm-background);
+  --color-surface: var(--fm-surface);
+  --color-surface-muted: var(--fm-surface-muted);
+  --color-border: var(--fm-border);
+  --color-border-strong: var(--fm-border-strong);
+  --color-foreground: var(--fm-foreground);
+  --color-muted: var(--fm-muted);
+  --color-primary: var(--fm-primary);
+  --color-primary-foreground: var(--fm-primary-foreground);
+  --color-primary-soft: var(--fm-primary-soft);
+  --color-primary-soft-foreground: var(--fm-primary-soft-foreground);
+  --color-link: var(--fm-link);
+  --color-positive: var(--fm-positive);
+  --color-positive-soft: var(--fm-positive-soft);
+  --color-negative: var(--fm-negative);
+  --color-negative-soft: var(--fm-negative-soft);
+  --color-ring: var(--fm-ring);
+  --color-chart-1: var(--fm-chart-1);
+  --color-chart-2: var(--fm-chart-2);
+  --color-chart-3: var(--fm-chart-3);
+  --color-chart-4: var(--fm-chart-4);
+  --color-chart-5: var(--fm-chart-5);
+}
+
+:root {
+  color-scheme: light;
+  --fm-background: #f7f6fb;
+  --fm-surface: #ffffff;
+  --fm-surface-muted: #efedf6;
+  --fm-border: #e4e2ec;
+  --fm-border-strong: #77738e;
+  --fm-foreground: #16132e;
+  --fm-muted: #5b5870;
+  --fm-primary: #7a35f5;
+  --fm-primary-foreground: #ffffff;
+  --fm-primary-soft: #eae1ff;
+  --fm-primary-soft-foreground: #6826db;
+  --fm-link: #7a35f5;
+  --fm-positive: #157675;
+  --fm-positive-soft: #d2faf9;
+  --fm-negative: #ab3055;
+  --fm-negative-soft: #fbe6ec;
+  --fm-ring: #8b51ff;
+  --fm-chart-1: #8b51ff;
+  --fm-chart-2: #1fb9b7;
+  --fm-chart-3: #e06183;
+  --fm-chart-4: #bb9cff;
+  --fm-chart-5: #a19db5;
+  --fm-logo-bg: #ffffff;
+  --fm-logo-ink: #16132e;
+}
+
+/* Modo escuro: escolhido pelo usuário, ou pelo sistema quando não há escolha. */
+:root.tema-escuro {
+  color-scheme: dark;
+  --fm-background: #0e0c1f;
+  --fm-surface: #16132e;
+  --fm-surface-muted: #1c1937;
+  --fm-border: #2a2742;
+  --fm-border-strong: #77738e;
+  --fm-foreground: #f7f6fb;
+  --fm-muted: #a19db5;
+  --fm-primary-soft: #2b0f63;
+  --fm-primary-soft-foreground: #bb9cff;
+  --fm-link: #bb9cff;
+  --fm-positive: #75e9e6;
+  --fm-positive-soft: #062f30;
+  --fm-negative: #e87e9c;
+  --fm-negative-soft: #441021;
+  --fm-ring: #a274ff;
+  --fm-chart-2: #75e9e6;
+  --fm-logo-bg: #16132e;
+  --fm-logo-ink: #ffffff;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not(.tema-claro) {
+    color-scheme: dark;
+    --fm-background: #0e0c1f;
+    --fm-surface: #16132e;
+    --fm-surface-muted: #1c1937;
+    --fm-border: #2a2742;
+    --fm-border-strong: #77738e;
+    --fm-foreground: #f7f6fb;
+    --fm-muted: #a19db5;
+    --fm-primary-soft: #2b0f63;
+    --fm-primary-soft-foreground: #bb9cff;
+    --fm-link: #bb9cff;
+    --fm-positive: #75e9e6;
+    --fm-positive-soft: #062f30;
+    --fm-negative: #e87e9c;
+    --fm-negative-soft: #441021;
+    --fm-ring: #a274ff;
+    --fm-chart-2: #75e9e6;
+    --fm-logo-bg: #16132e;
+    --fm-logo-ink: #ffffff;
+  }
+}
+
+/* ---- Acessibilidade (RF-082): classes aplicadas por core/tema ------------------------
+ * Os ajustes ficam cifrados no cofre e só valem depois do desbloqueio (RN-001).
+ */
+
+/* Tamanho do texto: tudo usa rem, então escalar a raiz escala a interface inteira. */
+:root.fonte-grande {
+  font-size: 112.5%;
+}
+:root.fonte-maior {
+  font-size: 125%;
+}
+
+/* Alto contraste: texto secundário quase da cor do principal, bordas visíveis em todo
+ * cartão e cores de sinal mais fortes (todas ≥ 7:1 sobre a superfície, nível AAA). */
+:root.contraste-alto {
+  --fm-muted: #3d3a54;
+  --fm-border: #77738e;
+  --fm-border-strong: #3d3a54;
+  --fm-positive: #0b5554;
+  --fm-negative: #8a1f40;
+  --fm-link: #5a1fd0;
+  --fm-primary-soft-foreground: #4f17b0;
+  --fm-ring: #5a1fd0;
+}
+:root.contraste-alto.tema-escuro {
+  --fm-background: #000000;
+  --fm-surface: #0b0a16;
+  --fm-surface-muted: #1c1937;
+  --fm-foreground: #ffffff;
+  --fm-muted: #dcd9ea;
+  --fm-border: #8f8aa8;
+  --fm-border-strong: #c9c5db;
+  --fm-positive: #a6f7f4;
+  --fm-negative: #ffb8cb;
+  --fm-link: #d9c8ff;
+  --fm-primary-soft-foreground: #d9c8ff;
+  --fm-ring: #c4a8ff;
+}
+@media (prefers-color-scheme: dark) {
+  :root.contraste-alto:not(.tema-claro) {
+    --fm-background: #000000;
+    --fm-surface: #0b0a16;
+    --fm-surface-muted: #1c1937;
+    --fm-foreground: #ffffff;
+    --fm-muted: #dcd9ea;
+    --fm-border: #8f8aa8;
+    --fm-border-strong: #c9c5db;
+    --fm-positive: #a6f7f4;
+    --fm-negative: #ffb8cb;
+    --fm-link: #d9c8ff;
+    --fm-primary-soft-foreground: #d9c8ff;
+    --fm-ring: #c4a8ff;
+  }
+}
+:root.contraste-alto :focus-visible {
+  outline-width: 3px !important;
+  outline-offset: 3px !important;
+}
+
+/* Reduzir animações mesmo sem a preferência do sistema (RNF-028). */
+:root.animacoes-reduzidas *,
+:root.animacoes-reduzidas *::before,
+:root.animacoes-reduzidas *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+  scroll-behavior: auto !important;
+}
+
+@layer base {
+  body {
+    @apply bg-background font-sans text-foreground antialiased;
+  }
+  h1,
+  h2,
+  h3 {
+    @apply font-display tracking-tight;
+  }
+  /* Foco sempre visível e com contraste ≥ 3:1 (WCAG 2.4.7, 1.4.11). */
+  :focus-visible {
+    outline: 2px solid var(--fm-ring);
+    outline-offset: 2px;
+  }
+  h1:focus {
+    outline: none;
+  }
+  ::selection {
+    @apply bg-primary-soft text-primary-soft-foreground;
+  }
+  th {
+    @apply border-b border-border px-3 py-2 text-xs font-semibold tracking-wide text-muted uppercase;
+  }
+  td {
+    @apply border-b border-border px-3 py-3 align-top;
+  }
+  tbody tr:last-child td,
+  tbody tr:last-child th {
+    @apply border-b-0;
+  }
+  dialog {
+    @apply border border-border bg-surface text-foreground;
+  }
+  input[type='checkbox'],
+  input[type='radio'] {
+    @apply size-4 accent-primary;
+  }
+  progress {
+    @apply h-2 w-full appearance-none overflow-hidden rounded-full bg-surface-muted;
+  }
+  progress::-webkit-progress-bar {
+    @apply rounded-full bg-surface-muted;
+  }
+  progress::-webkit-progress-value {
+    @apply rounded-full bg-chart-1;
+  }
+  progress::-moz-progress-bar {
+    @apply rounded-full bg-chart-1;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      transition-duration: 0.01ms !important;
+      animation-duration: 0.01ms !important;
+    }
+  }
+}
+
+/* ---- Componentes (usados nos templates com estes nomes) ---------------------- */
+
 @utility foco {
-  @apply focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-blue-700;
+  @apply focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring;
 }
 
 @utility botao {
-  @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-md px-4 py-2 font-medium foco transition-colors disabled:cursor-not-allowed disabled:opacity-60 motion-reduce:transition-none;
+  @apply inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-md px-[18px] py-2 font-semibold foco transition-colors disabled:cursor-not-allowed disabled:opacity-60 motion-reduce:transition-none;
 }
 @utility botao-primario {
-  @apply botao bg-blue-700 text-white hover:bg-blue-800;
+  @apply botao bg-primary text-primary-foreground hover:bg-iris-700;
 }
 @utility botao-secundario {
-  @apply botao border border-gray-400 bg-white text-gray-900 hover:bg-gray-100;
+  @apply botao border border-border bg-surface text-foreground hover:bg-surface-muted aria-pressed:border-primary aria-pressed:bg-primary-soft aria-pressed:text-primary-soft-foreground;
 }
+@utility botao-suave {
+  @apply botao bg-primary-soft text-primary-soft-foreground hover:brightness-95;
+}
+/* Ação destrutiva: rosa só em pouca área (regra de uso da identidade). */
 @utility botao-perigo {
-  @apply botao bg-red-700 text-white hover:bg-red-800;
+  @apply botao bg-negative-soft text-negative hover:brightness-95;
 }
 
 @utility link {
-  @apply rounded-sm text-blue-700 underline underline-offset-2 foco hover:text-blue-900;
+  @apply cursor-pointer rounded-sm font-medium text-link underline decoration-1 underline-offset-2 foco hover:decoration-2;
 }
 
 @utility rotulo {
-  @apply block font-medium text-gray-900;
+  @apply block text-sm font-medium text-foreground;
 }
 @utility campo {
-  @apply mt-1 block w-full rounded-md border border-gray-500 bg-white px-3 py-2 text-gray-900 foco aria-invalid:border-red-700;
+  @apply mt-1 block min-h-11 w-full rounded-md border border-border-strong bg-surface px-3.5 py-2 text-foreground foco placeholder:text-muted focus:border-ring aria-invalid:border-negative;
 }
 @utility ajuda {
-  @apply mt-1 text-sm text-gray-700;
+  @apply mt-1 text-sm text-muted;
 }
 @utility erro {
-  @apply mt-1 text-sm font-medium text-red-700;
+  @apply mt-1 text-sm font-medium text-negative;
 }
 
 @utility cartao {
-  @apply rounded-lg border border-gray-300 bg-white p-6 shadow-sm;
+  @apply rounded-lg border border-border bg-surface p-5 shadow-card;
 }
-@utility aviso {
-  @apply rounded-md border-l-4 border-amber-600 bg-amber-50 p-4 text-gray-900;
+@utility rotulo-secao {
+  @apply text-xs font-semibold tracking-wide text-muted uppercase;
 }
-@utility alerta-erro {
-  @apply rounded-md border-l-4 border-red-700 bg-red-50 p-4 text-gray-900;
-}
-@utility alerta-sucesso {
-  @apply rounded-md border-l-4 border-green-700 bg-green-50 p-4 text-gray-900;
+@utility valor-kpi {
+  @apply font-display text-[28px] leading-tight font-semibold tabular-nums;
 }
 
-h1:focus {
-  outline: none;
+@utility aviso {
+  @apply rounded-md border border-border bg-surface-muted p-4 text-foreground;
+}
+@utility alerta-erro {
+  @apply rounded-md bg-negative-soft p-4 font-medium text-negative;
+}
+@utility alerta-sucesso {
+  @apply rounded-md bg-positive-soft p-4 font-medium text-positive;
+}
+
+@utility selo {
+  @apply inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold;
+}
+@utility selo-positivo {
+  @apply selo bg-positive-soft text-positive;
+}
+@utility selo-negativo {
+  @apply selo bg-negative-soft text-negative;
+}
+@utility selo-primario {
+  @apply selo bg-primary-soft text-primary-soft-foreground;
+}
+@utility selo-neutro {
+  @apply selo bg-surface-muted text-muted;
+}
+
+/* Barras de progresso por cor de série (cofrinhos). */
+@utility progresso-aqua {
+  &::-webkit-progress-value {
+    background-color: var(--fm-chart-2);
+  }
+  &::-moz-progress-bar {
+    background-color: var(--fm-chart-2);
+  }
+}
+@utility progresso-rosa {
+  &::-webkit-progress-value {
+    background-color: var(--fm-chart-3);
+  }
+  &::-moz-progress-bar {
+    background-color: var(--fm-chart-3);
+  }
+}
+
+/* Impressão / "Exportar PDF" (RF-053): sempre com as cores claras, qualquer que seja o tema. */
+@media print {
+  :root:root:root:root {
+    color-scheme: light;
+    --fm-background: #ffffff;
+    --fm-surface: #ffffff;
+    --fm-surface-muted: #efedf6;
+    --fm-border: #c9c6d6;
+    --fm-border-strong: #77738e;
+    --fm-foreground: #16132e;
+    --fm-muted: #4a4762;
+    --fm-primary-soft: #eae1ff;
+    --fm-primary-soft-foreground: #6826db;
+    --fm-link: #6826db;
+    --fm-positive: #157675;
+    --fm-positive-soft: #d2faf9;
+    --fm-negative: #ab3055;
+    --fm-negative-soft: #fbe6ec;
+    --fm-chart-2: #1fb9b7;
+  }
+  body {
+    @apply bg-white text-black;
+  }
+  .cartao {
+    box-shadow: none;
+    break-inside: avoid;
+  }
+}
+@utility progresso-cinza {
+  &::-webkit-progress-value {
+    background-color: var(--fm-chart-5);
+  }
+  &::-moz-progress-bar {
+    background-color: var(--fm-chart-5);
+  }
+}
+
+/* Ocorrência no calendário (RF-022): texto + símbolo + cor, nunca só cor. */
+@utility chip-ocorrencia {
+  @apply block w-full cursor-pointer rounded-sm bg-primary-soft px-1.5 py-1 text-left text-xs leading-snug font-medium text-primary-soft-foreground foco hover:brightness-95 aria-pressed:outline-2 aria-pressed:outline-ring;
+}
+@utility chip-paga {
+  @apply bg-positive-soft text-positive;
+}
+@utility chip-vencida {
+  @apply bg-negative-soft text-negative;
+}
+
+/* Ações em linhas de tabela e listas (Editar, Excluir, Restaurar): botões compactos. */
+@utility botao-acao {
+  @apply inline-flex min-h-9 cursor-pointer items-center justify-center rounded-md border border-border bg-surface px-3 text-sm font-semibold text-foreground foco transition-colors hover:bg-surface-muted disabled:cursor-not-allowed disabled:opacity-50 motion-reduce:transition-none;
+}
+@utility botao-acao-perigo {
+  @apply inline-flex min-h-9 cursor-pointer items-center justify-center rounded-md bg-negative-soft px-3 text-sm font-semibold text-negative foco hover:brightness-95;
 }

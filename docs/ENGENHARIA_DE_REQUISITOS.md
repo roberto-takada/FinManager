@@ -1,6 +1,6 @@
 # FinManager — Documento de Engenharia de Requisitos
 
-> **Versão:** 0.7
+> **Versão:** 0.12
 > **Data:** 2026-11-05
 > **Autor:** Roberto Takada
 > **Status:** Em elaboração — todas as [Questões em Aberto](#10-questões-em-aberto) (QA-001 a QA-012) resolvidas
@@ -164,7 +164,7 @@ Já usa planilhas, tem algumas fontes de renda e investimentos. Quer relatórios
 | RF-022 | O sistema DEVE diferenciar visualmente contas pendentes, pagas/recebidas e vencidas (não apenas por cor — RNF de acessibilidade). | Must |
 | RF-023 | O sistema DEVE permitir marcar uma conta como paga/recebida, gerando a transação correspondente. | Must |
 | RF-024 | O sistema DEVERIA enviar **notificações do navegador** sobre contas próximas do vencimento (antecedência configurável) enquanto o app estiver aberto e o cofre desbloqueado (QA-007). Por padrão, o texto da notificação NÃO DEVE exibir valores nem descrições (ex.: "2 contas vencem amanhã"), pois notificações podem aparecer na tela de bloqueio do sistema. | Should |
-| RF-025 | O sistema PODE permitir exportar o calendário em formato iCal (.ics). | Could |
+| RF-025 | O sistema PODE permitir exportar o calendário em formato iCal (.ics). Como o arquivo não é cifrado, a exportação DEVE ser precedida de um aviso e de confirmação (como em RF-097). | Could |
 | RF-026 | A permissão de notificação DEVE ser solicitada somente após uma ação explícita do usuário. Se negada, os alertas DEVEM aparecer dentro do app (Home e ao desbloquear). | Should |
 
 ### 5.4 Cofrinhos / Objetivos (COF)
@@ -172,10 +172,10 @@ Já usa planilhas, tem algumas fontes de renda e investimentos. Quer relatórios
 | ID | Requisito | Prioridade |
 |----|-----------|-----------|
 | RF-030 | O sistema DEVE permitir criar cofrinhos com nome, valor-meta, prazo opcional e ícone/cor. | Must |
-| RF-031 | O sistema DEVE permitir depositar e retirar valores de um cofrinho, registrando cada movimentação. | Must |
+| RF-031 | O sistema DEVE permitir depositar e retirar valores de um cofrinho, registrando cada movimentação. Cada depósito sai de uma conta financeira e cada retirada volta para uma (o patrimônio não muda). As movimentações não são editadas nem excluídas: um engano se corrige com uma movimentação contrária. | Must |
 | RF-032 | O sistema DEVE exibir o progresso de cada cofrinho (valor atual, % da meta, valor restante). | Must |
-| RF-033 | O sistema DEVERIA calcular quanto o usuário precisa guardar por mês para atingir a meta no prazo. | Should |
-| RF-034 | O sistema DEVE exigir confirmação para encerrar/zerar um cofrinho (RN-005). | Must |
+| RF-033 | O sistema DEVERIA calcular quanto o usuário precisa guardar por mês para atingir a meta no prazo: valor restante dividido pelos meses de calendário até o prazo (mínimo 1), arredondado para cima ao centavo. | Should |
+| RF-034 | O sistema DEVE exigir confirmação para encerrar/zerar um cofrinho (RN-005). Zerar devolve todo o saldo a uma conta e mantém o cofrinho; encerrar devolve o saldo e arquiva o cofrinho. Só cofrinhos sem movimentações podem ser excluídos (os demais são encerrados). | Must |
 
 ### 5.5 Dashboard e Patrimônio (DSH)
 
@@ -187,6 +187,8 @@ Já usa planilhas, tem algumas fontes de renda e investimentos. Quer relatórios
 | RF-043 | O usuário DEVE poder personalizar a dashboard: adicionar, remover, reordenar e redimensionar widgets. | Should |
 | RF-044 | A configuração da dashboard DEVE ser persistida por usuário. | Should |
 | RF-045 | Todo gráfico DEVE possuir alternativa textual/tabular acessível. | Must |
+| RF-046 | O usuário PODE reordenar os widgets da dashboard arrastando e soltando, como complemento aos botões (que continuam sendo o caminho por teclado, RNF-021). **Para depois da release 1.0.** | Could (pós-1.0) |
+| RF-047 | O usuário DEVERIA poder escolher o período exibido na dashboard (ex.: este mês, mês anterior, últimos 3 meses), aplicado ao resumo e aos gráficos. **Para depois da release 1.0.** | Should (pós-1.0) |
 
 ### 5.6 Relatórios (REL)
 
@@ -196,7 +198,7 @@ Já usa planilhas, tem algumas fontes de renda e investimentos. Quer relatórios
 | RF-051 | O relatório DEVE conter: total de receitas, total de despesas, saldo, despesas por categoria, evolução patrimonial e situação dos cofrinhos no período. | Must |
 | RF-052 | O relatório DEVERIA comparar o período selecionado com o período anterior equivalente. | Should |
 | RF-053 | O sistema DEVERIA permitir exportar relatórios em PDF e CSV. | Should |
-| RF-054 | O sistema PODE permitir relatórios em período personalizado (data inicial/final). | Could |
+| RF-054 | O sistema PODE permitir relatórios em período personalizado (data inicial/final). **Para depois da release 1.0.** | Could (pós-1.0) |
 
 ### 5.7 Projeções e IA (IA)
 
@@ -229,9 +231,9 @@ Já usa planilhas, tem algumas fontes de renda e investimentos. Quer relatórios
 | ID | Requisito | Prioridade |
 |----|-----------|-----------|
 | RF-080 | O usuário DEVE poder editar dados do perfil (nome, foto/avatar, e-mail). | Must |
-| RF-081 | O usuário DEVE poder escolher tema (claro, escuro, seguir o sistema). | Should |
+| RF-081 | O usuário DEVE poder escolher tema (claro, escuro, seguir o sistema). Sem escolha, segue o sistema; a escolha fica cifrada no cofre e vale após o desbloqueio. | Should |
 | RF-082 | O usuário DEVERIA poder ajustar tamanho de fonte, contraste e redução de animações. | Should |
-| RF-083 | O usuário DEVERIA poder configurar preferências: moeda do app, primeiro dia da semana, dia de início do mês financeiro, formato de data, notificações. | Should |
+| RF-083 | O usuário DEVERIA poder configurar preferências: moeda do app, primeiro dia da semana, dia de início do mês financeiro, formato de data, notificações. **Implementado junto com os requisitos de moeda (RF-110 a RF-114).** | Should |
 | RF-084 | O usuário DEVE poder exportar todos os seus dados (ver seção 5.10) (RN-010). | Must |
 
 ### 5.10 Backup, Exportação e Importação (BKP)
@@ -484,7 +486,7 @@ erDiagram
 | **v0.3** | Personalização e portfólio | Dashboard personalizável; temas e acessibilidade avançada; perfil; exportação de relatórios; modo demonstração; publicação em hospedagem estática. |
 | **v0.4** | Inteligência | Projeções; sugestão de categoria; detecção de anomalias; resumos em linguagem natural. |
 | **v0.5+** | Evolução | Câmbio via API e contas em múltiplas moedas (requer ADR revendo RN-011); PWA instalável/offline; lembretes de backup; iCal. |
-| **Pós-1.0** | Depois da primeira versão completa | Importação de transações via arquivo CSV/OFX (RF-018). |
+| **Pós-1.0** | Depois da primeira versão completa | Importação de transações via arquivo CSV/OFX (RF-018); relatórios em período personalizado (RF-054); seletor de período da dashboard (RF-047); reordenar widgets arrastando e soltando (RF-046). |
 
 > **Por que o backup está no MVP:** sem servidor, a exportação é a única proteção contra perda de dados (RN-012, RN-014). Usar o app com dados reais sem backup seria um risco inaceitável.
 
@@ -525,7 +527,7 @@ Nenhuma no momento. Novas questões devem receber o próximo número (QA-013).
 | OBJ-02 (aprendizado/portfólio) | RNF-040 a RNF-043, RNF-060 a RNF-063 |
 | OBJ-03 (robusto/seguro) | RN-001, RN-008, RN-010 a RN-014, RF-001 a RF-006, RNF-001 a RNF-014 |
 | OBJ-03 (acessível/UX) | RF-045, RF-081, RF-082, RNF-020 a RNF-028 |
-| OBJ-04 (dashboard/patrimônio) | RF-040 a RF-045 |
+| OBJ-04 (dashboard/patrimônio) | RF-040 a RF-047 |
 | OBJ-04 (cofrinhos) | RF-030 a RF-034 |
 | OBJ-04 (projeções/IA) | RF-060 a RF-065, RN-009, RNF-009 |
 | RN-001 | RF-001, RF-070, RF-090, RNF-002, RNF-003, RNF-004 |
@@ -538,7 +540,7 @@ Nenhuma no momento. Novas questões devem receber o próximo número (QA-013).
 | RN-012 / RN-014 / RN-015 | RF-090 a RF-099, RNF-012 |
 | Cartão de crédito (QA-008) | RF-013, RF-100 a RF-107 |
 | Feature: Relatórios | RF-050 a RF-054 |
-| Feature: Customização | RF-043, RF-044, RF-080 a RF-083 |
+| Feature: Customização | RF-043, RF-044, RF-046, RF-047, RF-080 a RF-083 |
 | Feature: Calendário | RF-020 a RF-026, RF-104 |
 
 ---
@@ -585,3 +587,8 @@ Nenhuma no momento. Novas questões devem receber o próximo número (QA-013).
 | 0.5 | 2026-11-05 | Roberto Takada | Licença GPL-3.0 e hospedagem no GitHub Pages (RNF-060, RNF-062); nova RNF-064 (anti-clickjacking). |
 | 0.6 | 2026-11-08 | Roberto Takada | RF-018 (importação CSV/OFX) adiado para depois da release 1.0; nova linha "Pós-1.0" nas releases. |
 | 0.7 | 2026-11-08 | Roberto Takada | RF-013 (parcelamento) suspenso até a implementação do RF-100 (faturas do cartão). |
+| 0.8 | 2026-11-08 | Roberto Takada | RF-025: exportação iCal exige aviso de que o arquivo não é cifrado. |
+| 0.9 | 2026-11-08 | Roberto Takada | Cofrinhos: RF-031 (movimentações ligadas a contas, livro-razão imutável), RF-033 (regra de cálculo) e RF-034 (zerar, encerrar e exclusão só sem movimentações) detalhados. |
+| 0.10 | 2026-11-08 | Roberto Takada | RF-081: detalhado o comportamento do tema (segue o sistema; escolha cifrada, aplicada após desbloquear). |
+| 0.11 | 2026-11-08 | Roberto Takada | Dashboard implementada (RF-040 a RF-045). Novos RF-046 (arrastar e soltar widgets, Could) e RF-047 (seletor de período da dashboard, Should), ambos para depois da release 1.0. |
+| 0.12 | 2026-11-08 | Roberto Takada | Versão beta: relatórios (RF-050 a RF-053) e perfil e personalização (RF-080 a RF-082, RF-084) implementados. RF-054 adiado para depois da 1.0; RF-083 passa a acompanhar os requisitos de moeda. |

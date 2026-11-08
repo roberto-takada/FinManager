@@ -243,6 +243,14 @@ export class CofreService {
     return this.dek;
   }
 
+  /**
+   * As duas cópias cifradas da DEK, para o arquivo de backup (RF-090, QA-010). Exige o
+   * cofre desbloqueado. Não revelam nada sem a senha ou a chave de recuperação.
+   */
+  chavesParaBackup(): ChavesCofre {
+    return this.chavesDesbloqueadas();
+  }
+
   // ---------------------------------------------------------------------------
 
   private abrirSessao(dek: ChaveDeDados): void {

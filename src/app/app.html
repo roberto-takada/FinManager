@@ -1,36 +1,125 @@
 <a
   href="#conteudo"
-  class="sr-only rounded-md bg-white px-4 py-2 foco focus:not-sr-only focus:absolute focus:top-2 focus:left-2"
+  class="sr-only z-50 rounded-md bg-surface px-4 py-2 font-semibold text-foreground foco focus:not-sr-only focus:absolute focus:top-2 focus:left-2"
   >Pular para o conteúdo</a
 >
 
-<header class="border-b border-gray-300 bg-white print:hidden">
-  <div class="mx-auto flex max-w-3xl flex-wrap items-center justify-between gap-3 px-4 py-3">
-    <p class="text-xl font-bold text-gray-900">FinManager</p>
-    @if (cofre.desbloqueado()) {
-      <nav aria-label="Principal" class="flex flex-wrap items-center gap-4">
-        @for (item of menu; track item.rota) {
-          <a
-            class="link"
-            [routerLink]="item.rota"
-            routerLinkActive="font-semibold"
-            [routerLinkActiveOptions]="{ exact: item.rota === '/' }"
-            ariaCurrentWhenActive="page"
-            >{{ item.rotulo }}</a
+@if (cofre.desbloqueado()) {
+  <div class="min-h-dvh md:grid md:grid-cols-[256px_1fr] print:block">
+    <aside
+      class="flex flex-col border-b border-border bg-surface md:sticky md:top-0 md:h-dvh md:border-r md:border-b-0 print:hidden"
+    >
+      <div class="flex items-center justify-between gap-3 px-5 py-4 md:py-6">
+        <a
+          routerLink="/"
+          class="flex items-center gap-3 rounded-md foco"
+          aria-label="FinManager, ir para o início"
+        >
+          <app-logo [tamanho]="32" />
+          <span class="font-display text-xl font-semibold tracking-tight" aria-hidden="true"
+            >FinManager</span
           >
-        }
-        <button type="button" class="botao-secundario" (click)="bloquear()">Bloquear cofre</button>
-      </nav>
-    }
-  </div>
-</header>
+        </a>
+        <button
+          type="button"
+          class="botao-secundario md:hidden"
+          [attr.aria-expanded]="menuAberto()"
+          aria-controls="menu-principal"
+          (click)="menuAberto.set(!menuAberto())"
+        >
+          Menu
+        </button>
+      </div>
 
-<main id="conteudo" class="mx-auto max-w-3xl px-4 py-8">
-  @if (dados.estado() === 'erro') {
-    <p class="mb-6 alerta-erro" role="alert">
-      Não foi possível decifrar os dados deste navegador. Bloqueie o cofre e tente desbloquear de
-      novo. Nenhum dado foi alterado.
-    </p>
-  }
-  <router-outlet />
-</main>
+      <div
+        id="menu-principal"
+        class="flex-1 flex-col overflow-y-auto px-3 pb-4 md:flex"
+        [class.hidden]="!menuAberto()"
+        [class.flex]="menuAberto()"
+      >
+        <nav aria-label="Principal">
+          <ul class="space-y-1">
+            @for (item of menu; track item.rota) {
+              <li>
+                <a
+                  class="group flex min-h-11 items-center gap-3 rounded-md px-3 text-muted foco transition-colors hover:bg-surface-muted hover:text-foreground aria-[current=page]:bg-primary-soft aria-[current=page]:font-semibold aria-[current=page]:text-primary-soft-foreground motion-reduce:transition-none"
+                  [routerLink]="item.rota"
+                  routerLinkActive=""
+                  [routerLinkActiveOptions]="{ exact: item.rota === '/' }"
+                  ariaCurrentWhenActive="page"
+                  (click)="menuAberto.set(false)"
+                >
+                  <span
+                    aria-hidden="true"
+                    class="size-2 rounded-full bg-border group-aria-[current=page]:bg-chart-3"
+                  ></span>
+                  {{ item.rotulo }}
+                </a>
+              </li>
+            }
+          </ul>
+        </nav>
+
+        <div class="mt-auto space-y-3 border-t border-border pt-4">
+          @if (perfil.preenchido()) {
+            <a
+              routerLink="/perfil"
+              class="flex items-center gap-3 rounded-md p-1 foco hover:bg-surface-muted"
+              data-perfil-menu
+              (click)="menuAberto.set(false)"
+            >
+              <app-avatar
+                [avatar]="perfil.perfil().avatar"
+                [nome]="perfil.perfil().nome"
+                [tamanho]="36"
+              />
+              <span class="min-w-0">
+                <span class="block truncate font-medium">{{
+                  perfil.perfil().nome || 'Seu perfil'
+                }}</span>
+                <span class="block text-xs text-muted">Ver perfil</span>
+              </span>
+            </a>
+          }
+          <div>
+            <label class="rotulo" for="tema">Tema</label>
+            <select id="tema" class="campo" (change)="alterarTema($event)">
+              @for (t of temas; track t.valor) {
+                <option [value]="t.valor" [selected]="t.valor === preferencias.tema()">
+                  {{ t.rotulo }}
+                </option>
+              }
+            </select>
+          </div>
+          <button type="button" class="botao-secundario w-full" (click)="bloquear()">
+            Bloquear cofre
+          </button>
+        </div>
+      </div>
+    </aside>
+
+    <main
+      id="conteudo"
+      class="mx-auto w-full max-w-6xl px-4 py-6 md:px-8 md:py-8 print:max-w-none print:p-0"
+    >
+      @if (dados.estado() === 'erro') {
+        <p class="mb-6 alerta-erro" role="alert">
+          Não foi possível decifrar os dados deste navegador. Bloqueie o cofre e tente desbloquear
+          de novo. Nenhum dado foi alterado.
+        </p>
+      }
+      <router-outlet />
+    </main>
+  </div>
+} @else {
+  <!-- Telas do cofre (criar, desbloquear, recuperar, apagar): layout centrado e simples. -->
+  <header class="print:hidden">
+    <div class="mx-auto flex max-w-xl items-center gap-3 px-4 pt-8">
+      <app-logo [tamanho]="40" [comFundo]="true" />
+      <p class="font-display text-2xl font-semibold tracking-tight">FinManager</p>
+    </div>
+  </header>
+  <main id="conteudo" class="mx-auto max-w-xl px-4 py-8">
+    <router-outlet />
+  </main>
+}

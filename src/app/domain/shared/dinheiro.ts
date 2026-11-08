@@ -78,6 +78,17 @@ export function formatarDinheiro(valor: Dinheiro, localidade = 'pt-BR'): string 
   );
 }
 
+/** Formato curto para eixos de gráficos, ex.: "R$ 12 mil" (só exibição). */
+export function formatarDinheiroCompacto(valor: Dinheiro, localidade = 'pt-BR'): string {
+  const casas = casasDecimais(valor.moeda);
+  return new Intl.NumberFormat(localidade, {
+    style: 'currency',
+    currency: valor.moeda,
+    notation: 'compact',
+    maximumFractionDigits: 1,
+  }).format(valor.unidades / 10 ** casas);
+}
+
 /** Valor para preencher um campo de edição, ex.: "1234,56". */
 export function paraTextoEditavel(valor: Dinheiro): string {
   const casas = casasDecimais(valor.moeda);

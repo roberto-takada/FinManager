@@ -12,8 +12,8 @@ import { mensagemDeErro, segundos } from '../compartilhado/mensagens';
   template: `
     <div class="space-y-6">
       <div>
-        <h1 tabindex="-1" class="text-3xl font-bold text-gray-900">Desbloquear cofre</h1>
-        <p class="mt-2 text-gray-700">Digite sua senha mestra para acessar seus dados.</p>
+        <h1 tabindex="-1" class="text-3xl font-bold text-foreground">Desbloquear cofre</h1>
+        <p class="mt-2 text-muted">Digite sua senha mestra para acessar seus dados.</p>
       </div>
 
       @if (cofre.motivoUltimoBloqueio() === 'inatividade') {

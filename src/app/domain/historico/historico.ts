@@ -7,13 +7,16 @@ import type { Entidade } from '../shared/entidade';
 export const DIAS_RETENCAO = 180;
 const MS_POR_DIA = 86_400_000;
 
-export type AcaoHistorico = 'exclusao' | 'edicao' | 'restauracao';
-export type TipoEntidade = 'transacao' | 'conta' | 'categoria' | 'recorrencia';
+export type AcaoHistorico = 'exclusao' | 'edicao' | 'restauracao' | 'zeramento' | 'encerramento';
+export type TipoEntidade =
+  'transacao' | 'conta' | 'categoria' | 'recorrencia' | 'contaAgendada' | 'cofrinho';
 
 export const ACOES_HISTORICO: Readonly<Record<AcaoHistorico, string>> = {
   exclusao: 'Exclusão',
   edicao: 'Edição',
   restauracao: 'Restauração',
+  zeramento: 'Zeramento',
+  encerramento: 'Encerramento',
 };
 
 export const ENTIDADES: Readonly<Record<TipoEntidade, string>> = {
@@ -21,6 +24,8 @@ export const ENTIDADES: Readonly<Record<TipoEntidade, string>> = {
   conta: 'Conta',
   categoria: 'Categoria',
   recorrencia: 'Recorrência',
+  contaAgendada: 'Conta a pagar/receber',
+  cofrinho: 'Cofrinho',
 };
 
 export interface EventoHistorico {

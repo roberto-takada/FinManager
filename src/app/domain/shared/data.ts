@@ -1,4 +1,14 @@
-import { addDays, addMonths, addWeeks, addYears, format, isValid, parseISO } from 'date-fns';
+import {
+  addDays,
+  addMonths,
+  addWeeks,
+  addYears,
+  endOfMonth,
+  format,
+  isValid,
+  parseISO,
+  startOfMonth,
+} from 'date-fns';
 
 /**
  * Datas de calendário no formato "AAAA-MM-DD", sem horário nem fuso. Evitam que uma
@@ -47,4 +57,24 @@ export const compararDatas = (a: DataISO, b: DataISO) => (a < b ? -1 : a > b ? 1
 
 export function formatarData(data: DataISO, localidade = 'pt-BR'): string {
   return parseISO(data).toLocaleDateString(localidade);
+}
+
+/** Primeiro e último dia do mês da data. */
+export function intervaloDoMes(data: DataISO): [DataISO, DataISO] {
+  const d = parseISO(data);
+  return [format(startOfMonth(d), FORMATO), format(endOfMonth(d), FORMATO)];
+}
+
+/** Nome do mês por extenso, ex.: "novembro de 2026" ou só "outubro". */
+export function nomeDoMes(data: DataISO, comAno = true): string {
+  return parseISO(data).toLocaleDateString(
+    'pt-BR',
+    comAno ? { month: 'long', year: 'numeric' } : { month: 'long' },
+  );
+}
+
+/** Variação percentual com uma casa decimal; `null` quando a base é zero. */
+export function variacaoPercentual(atual: number, anterior: number): number | null {
+  if (anterior === 0) return null;
+  return Math.round(((atual - anterior) / Math.abs(anterior)) * 1000) / 10;
 }
