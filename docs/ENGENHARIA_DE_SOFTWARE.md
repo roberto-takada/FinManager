@@ -1,6 +1,6 @@
 # FinManager — Documento de Engenharia de Software
 
-> **Versão:** 0.6
+> **Versão:** 0.8
 > **Data:** 2026-11-05
 > **Autor:** Roberto Takada
 > **Status:** Em elaboração — arquitetura, stack, hospedagem e licença definidas (ADR-0001 a ADR-0005)
@@ -261,7 +261,8 @@ Decisões de design:
 - Componente único e reutilizável de **Diálogo de Confirmação**, para garantir consistência.
 - O diálogo deve: nomear o item afetado, descrever a consequência, ter o botão de ação com verbo explícito ("Excluir conta de luz") e o foco inicial em **Cancelar**.
 - Ações de altíssimo impacto (excluir a conta do usuário) exigem confirmação reforçada (ex.: digitar uma palavra ou a senha).
-- A lista de ações significativas é centralizada em um único ponto do código, espelhando RN-005.
+- A lista de ações significativas é centralizada em um único ponto do código, espelhando RN-005 (`domain/shared/acoes-significativas.ts`).
+- **Implementado** em `ui/dialogo-confirmacao/` com o `<dialog>` nativo (`showModal()`): foco preso, Esc cancela e o foco volta ao elemento de origem ao fechar, sem dependência extra.
 
 ### 5.4 Histórico e lixeira (RN-004)
 - **Exclusão lógica (soft delete):** registros recebem marcação de excluído com data/hora, em vez de serem apagados.
@@ -312,7 +313,14 @@ Regras de implementação:
 - Usar a **Web Crypto API** nativa para AES-GCM e geração de números aleatórios. **Nunca implementar algoritmos criptográficos à mão.**
 - Argon2id não é nativo da Web Crypto: se escolhido, usar biblioteca consolidada (WebAssembly); caso contrário, PBKDF2 nativo com ≥ 600.000 iterações (RNF-003). Os parâmetros ficam gravados nos metadados, permitindo aumentá-los no futuro.
 - Chaves da Web Crypto criadas como **não extraíveis** sempre que possível.
-- Os únicos dados não cifrados no armazenamento são os metadados do cofre (versão, *salt*, parâmetros da KDF, DEKs cifradas) e identificadores técnicos sem significado.
+- Os únicos dados não cifrados no armazenamento são os metadados do cofre (versão, data de criação, *salt*, parâmetros da KDF, DEKs cifradas, tempo de bloqueio automático) e identificadores técnicos sem significado. O tempo de bloqueio automático fica nos metadados porque ainda não existem preferências cifradas; ele não revela nada financeiro e deve migrar para as preferências (RF-083).
+- **Parâmetros do Argon2id (implementado):** 64 MiB, 10 iterações, paralelismo 1, calibrados por medição E2E para o desbloqueio levar ~0,55 s em um desktop atual (RNF-033); com 3 iterações levava ~0,2 s. A memória foi mantida em 64 MiB para não pesar em celulares.
+- **Dado adicional autenticado (AAD):** cada envelope é cifrado com a finalidade (`senha` ou `recuperacao`), impedindo usar um envelope no lugar do outro.
+- **DEK em memória não extraível:** a DEK é gerada como bytes aleatórios, cifrada nos dois envelopes e importada como `CryptoKey` não extraível; os bytes brutos são zerados (redução de exposição, não garantia, em JavaScript). Trocar senha ou chave decifra o envelope de novo, temporariamente.
+- **Senhas normalizadas em NFC** antes da derivação, para que acentos digitados em sistemas diferentes gerem a mesma chave.
+- **Atraso progressivo (RNF-006):** a partir da 3ª senha errada consecutiva, 2 s, dobrando até 60 s. O contador fica em memória (recarregar a página o zera); a proteção real é o custo do Argon2id.
+- **Recarregar a página bloqueia o cofre**, já que a DEK só existe em memória.
+- **Apagar o cofre** exige digitar `APAGAR TUDO` e não exige senha, para que quem perdeu senha e chave possa recomeçar (RN-010).
 - A decisão de carregar tudo em memória após desbloquear evita índices em texto claro (que vazariam datas, valores ou categorias). É viável para o volume esperado (dezenas de milhares de registros).
 
 ### 5.7 Formato do arquivo de backup (RN-012)
@@ -428,8 +436,9 @@ Em uma aplicação local-first E2E, o adversário típico **não** é alguém in
 > **Limitações conhecidas (para documentar honestamente no README):** a criptografia protege os dados *em repouso*. Ela não protege contra um computador já comprometido (keylogger, malware) nem contra código malicioso executando na página enquanto o cofre está desbloqueado. A segurança final depende da força da senha mestra.
 
 ### 6.3 Práticas obrigatórias
-- **Content Security Policy** restritiva: `default-src 'self'`, sem `unsafe-inline`/`unsafe-eval` em scripts, `connect-src 'self'` — isso também garante tecnicamente que nenhum dado seja enviado para fora (RN-011). Única exceção: `'wasm-unsafe-eval'`, exigida pelo Argon2id em WebAssembly (ADR-0001). Como o GitHub Pages não permite cabeçalhos HTTP personalizados, a CSP é definida por `<meta http-equiv>` (ADR-0005).
-- **Anti-clickjacking:** como `frame-ancestors` não funciona via `<meta>`, o app se recusa a renderizar se estiver dentro de um `iframe` (`window.top !== window.self`).
+- **Content Security Policy** restritiva: `default-src 'self'`, sem `unsafe-inline`/`unsafe-eval` em scripts, `connect-src 'self'` — isso também garante tecnicamente que nenhum dado seja enviado para fora (RN-011). Única exceção em `script-src`: `'wasm-unsafe-eval'`, exigida pelo Argon2id em WebAssembly (ADR-0001). Em `style-src` é aceito `'unsafe-inline'`, porque o Angular injeta os estilos dos componentes em tempo de execução e um nonce não traz proteção real em hospedagem estática. A inlinização de CSS crítico do build (`inlineCritical`) fica **desativada**, pois injeta um `<script>` inline. Como o GitHub Pages não permite cabeçalhos HTTP personalizados, a CSP é definida por `<meta http-equiv>` (ADR-0005).
+- **Anti-clickjacking:** como `frame-ancestors` não funciona via `<meta>`, o app se recusa a renderizar se estiver dentro de um `iframe` (`window.top !== window.self`): o Angular não é inicializado e só um aviso com link para abrir em nova aba é exibido.
+- A CSP, o bloqueio de rede, o Trusted Types e a proteção contra iframe são verificados por testes E2E (`e2e/seguranca.spec.ts`) no build de produção e no servidor de desenvolvimento.
 - **Origem compartilhada:** no GitHub Pages, todos os sites da conta compartilham a origem `<usuario>.github.io` e, portanto, o IndexedDB. Não publicar sites não confiáveis na mesma conta (ADR-0005, R-16).
 - Habilitar **Trusted Types** e não usar `bypassSecurityTrust*` do Angular (exceções exigem justificativa em revisão).
 - Nenhum script, fonte ou recurso carregado de CDN/terceiros; tudo empacotado junto com o app.
@@ -536,7 +545,7 @@ GitHub Actions:
 3. Verificação de tipos (`tsc --noEmit`, modo strict).
 4. Testes unitários e de integração (Vitest), com relatório de cobertura do `domain/`.
 5. Build de produção (`ng build`) e verificação do orçamento de tamanho (*budgets* do Angular).
-6. Testes E2E e de acessibilidade (Playwright + axe) nos três motores de navegador.
+6. Testes E2E e de acessibilidade (Playwright + axe) nos três motores de navegador (localmente, o WebKit é opcional: `E2E_WEBKIT=1`).
 7. Varredura de vulnerabilidades (`pnpm audit`) e de segredos.
 8. *(Na `main`)* Publicação da build estática.
 
@@ -706,3 +715,5 @@ FinManager/
 | 0.4 | 2026-11-05 | Roberto Takada | QA-012: moeda única trocável sem câmbio; algoritmo de troca de moeda na seção 5.1; risco R-15 (câmbio futuro via API). |
 | 0.5 | 2026-11-05 | Roberto Takada | Stack definida: Angular + TypeScript + Tailwind CSS (ADR-0001). Nova seção 4.5 (organização do código); CSP com `wasm-unsafe-eval` e Trusted Types; ferramentas de teste e pipeline de CI concretos; seção 13 reescrita como Stack Tecnológica. |
 | 0.6 | 2026-11-05 | Roberto Takada | Hospedagem no GitHub Pages e licença GPL-3.0 (ADR-0005): CSP por `<meta>`, anti-clickjacking em código, deploy com base-href e 404.html, risco R-16 (origem compartilhada), licenças compatíveis na política de dependências. |
+| 0.7 | 2026-11-06 | Roberto Takada | CSP implementada e testada: `style-src 'unsafe-inline'` justificado, `inlineCritical` desativado, testes E2E de segurança; WebKit opcional localmente. |
+| 0.8 | 2026-11-06 | Roberto Takada | Cofre implementado (RF-001 a RF-007): parâmetros do Argon2id calibrados (64 MiB, t=10), AAD por envelope, DEK não extraível, atraso progressivo, diálogo de confirmação nativo. |

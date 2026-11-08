@@ -97,4 +97,9 @@ module.exports = defineConfig([
     files: ['src/app/ui/**/*.ts'],
     rules: restricao(['application', 'infrastructure', 'features', 'core']),
   },
+  // Testes podem montar a aplicação com adaptadores reais (testes de integração).
+  {
+    files: ['src/**/*.spec.ts', 'src/testing/**/*.ts'],
+    rules: { 'no-restricted-imports': 'off' },
+  },
 ]);

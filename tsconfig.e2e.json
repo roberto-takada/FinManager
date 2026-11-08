@@ -1,0 +1,9 @@
+/* Testes E2E (Playwright): rodam no Node, fora do build do Angular. */
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "types": ["node"],
+    "noEmit": true
+  },
+  "include": ["e2e/**/*.ts", "playwright.config.ts"]
+}

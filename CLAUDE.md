@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Estado do projeto
 
-FinManager é um webapp de finanças pessoais **local-first, sem servidor, com criptografia ponta a ponta**. O projeto Angular foi criado, mas ainda é só o esqueleto: nenhuma feature foi implementada e as pastas de camadas abaixo ainda não existem. Toda a documentação, a interface e os commits são em **português (pt-BR)**.
+FinManager é um webapp de finanças pessoais **local-first, sem servidor, com criptografia ponta a ponta**. Implementado até agora: o **cofre** (RF-001 a RF-007: criar, desbloquear/bloquear, chave de recuperação, trocar senha, bloqueio automático, apagar). Ainda não há dados financeiros. Toda a documentação, a interface e os commits são em **português (pt-BR)**.
 
 Fontes de verdade (leia a seção relevante antes de implementar):
 - `docs/ENGENHARIA_DE_REQUISITOS.md`: **o quê**. Regras de negócio (RN-xxx), requisitos funcionais (RF-xxx) e não funcionais (RNF-xxx), histórias de usuário com critérios Dado/Quando/Então (US-xxx), questões resolvidas (QA-xxx) e releases (MVP = v0.1).
@@ -22,16 +22,31 @@ pnpm test --watch=false         # todos os testes (Vitest via ng test, ambiente 
 pnpm test --watch=false --include src/app/app.spec.ts           # um arquivo
 pnpm test --watch=false --include src/app/app.spec.ts --filter "título"   # um teste pelo nome (regex)
 pnpm lint                       # ESLint (angular-eslint + fronteiras entre camadas)
-pnpm typecheck                  # tsc --noEmit para app e specs
+pnpm typecheck                  # tsc --noEmit para app, specs e e2e
+pnpm e2e                        # Playwright contra o build de produção (porta 4300)
+pnpm e2e:dev                    # Playwright contra o servidor de desenvolvimento (porta 4201)
+pnpm e2e e2e/seguranca.spec.ts -g "iframe"   # um arquivo / um teste E2E pelo nome
 pnpm format / pnpm format:check # Prettier (com prettier-plugin-tailwindcss)
 ```
 
-Antes de dar uma tarefa por concluída, rode `format:check`, `lint`, `typecheck`, `test --watch=false` e `build`.
+Antes de dar uma tarefa por concluída, rode `format:check`, `lint`, `typecheck`, `test --watch=false`, `build` e `e2e`.
 
 - **`ng add` não funciona** com o pnpm 12 instalado: o Angular CLI 22.2.6 não detecta o pnpm. Instale os pacotes com `pnpm add` e configure à mão.
 - O `pnpm-workspace.yaml` define `minimumReleaseAge` (1 dia) e bloqueia scripts de instalação (`allowBuilds`). Não relaxe essas regras sem justificativa.
 - O Prettier ignora `*.md`, para não realinhar as tabelas da documentação.
-- Ainda não configurados: Playwright + axe, `fake-indexeddb`, CSP, service worker e deploy. O build para o GitHub Pages deverá usar `--base-href /FinManager/` e copiar `index.html` para `404.html`.
+- **Testes unitários usam criptografia real** com Argon2id barato (`PARAMETROS_KDF_TESTE` em `src/testing/cofre.ts`, fora do build). Utilitários de teste ficam em `src/testing/`; specs podem importar qualquer camada (a regra de fronteiras é desligada para `*.spec.ts`).
+- **E2E: recarregar a página bloqueia o cofre** (a chave só existe em memória). Para ir a telas internas, navegue pelo menu (`irParaSeguranca` em `e2e/cofre.helpers.ts`), não com `page.goto`.
+- **Firefox do Playwright + axe na tela de Segurança** derruba a página de forma intermitente (bug do navegador, isolado); esses 2 testes de acessibilidade estão como `fixme` só no Firefox.
+- **WebKit** do Playwright não roda no CachyOS (faltam bibliotecas do Ubuntu): localmente só Chromium e Firefox; WebKit roda no CI ou com `E2E_WEBKIT=1`.
+- Ainda não configurados: `fake-indexeddb`, service worker e deploy. O build para o GitHub Pages deverá usar `--base-href /FinManager/` e copiar `index.html` para `404.html`.
+
+### CSP e segurança da página
+- A CSP está em `<meta>` no `src/index.html` e é verificada por `e2e/seguranca.spec.ts` (sem violações, sem requisições externas, `connect-src` bloqueando `fetch`, Trusted Types ativo, proteção contra iframe).
+- **`inlineCritical` está desativado** no build de produção (`angular.json`): o Beasties injeta um `<script>` inline que a CSP bloqueia. Não reative.
+- Nunca adicione `'unsafe-inline'`/`'unsafe-eval'` em `script-src`. `style-src 'unsafe-inline'` é aceito porque o Angular injeta estilos de componentes.
+- Com Trusted Types, `innerHTML` com string comum lança erro: monte DOM com APIs (`createElement`, `textContent`) ou com templates do Angular.
+- `page.evaluate` do Playwright ignora a restrição de `eval` da CSP; para testar eval, verifique o texto da política.
+- A proteção contra iframe fica em `src/main.ts` + `src/app/core/seguranca/anti-clickjacking.ts`: dentro de um frame, o Angular nem é inicializado.
 
 ## Invariantes de arquitetura (não negociáveis)
 
@@ -65,11 +80,15 @@ src/app/
 - **Dinheiro:** use o objeto de valor `Dinheiro`, com valor em **unidades mínimas inteiras** e código **ISO 4217**. Nunca use ponto flutuante. Operações entre moedas diferentes lançam erro. Em parcelamentos, o resto dos centavos vai na 1ª parcela.
 - **Moeda:** o app usa uma única moeda por vez. Trocar a moeda **não converte** os valores: o valor na unidade principal é preservado e a escala das unidades mínimas é ajustada. Câmbio e múltiplas moedas ficam para uma versão futura.
 - **Cartão de crédito:** relatórios e projeções contam a compra pela **fatura**, mas a **data da compra** também é armazenada. Pagar a fatura é uma *transferência*, não uma despesa. Os casos de borda (dia 31, compra no dia do fechamento, parcelas, virada de ano) estão listados em §5.9.
-- **Ações significativas** (lista em RN-005) exigem o diálogo de confirmação reutilizável, com foco inicial em "Cancelar", geram um evento na trilha de auditoria *append-only* e usam *soft delete*. Itens excluídos e eventos expiram em **180 dias**; o expurgo roda a cada desbloqueio, porque não existe tarefa agendada.
+- **Ações significativas** (lista em RN-005 e em `domain/shared/acoes-significativas.ts`) exigem o diálogo de confirmação reutilizável (`ui/dialogo-confirmacao`), com foco inicial em "Cancelar", geram um evento na trilha de auditoria *append-only* e usam *soft delete*. Itens excluídos e eventos expiram em **180 dias**; o expurgo roda a cada desbloqueio, porque não existe tarefa agendada.
 - **Notificações** só funcionam com a aba aberta e o cofre desbloqueado, e por padrão o texto não mostra valores nem descrições.
 - **IA** é apenas local e determinística (regras, estatística, *templates*). Uma sugestão nunca altera dados sem o aceite do usuário.
 
 ## Convenções Angular e de código
+
+- Para usar a DEK nos futuros repositórios de dados, chame `CofreService.chaveDeDados()` (lança `ErroCofre('cofre-bloqueado')` se bloqueado). Nunca guarde a DEK em outro lugar.
+- Tailwind v4: classes próprias do design system ficam em `src/styles.css` como `@utility` (não `@layer components`), para poderem ser usadas com `@apply`.
+- A Web Crypto no TypeScript 6 exige `Uint8Array<ArrayBuffer>`; erros da Web Crypto devem ser identificados pelo `name` (`'OperationError'`), não por `instanceof DOMException`.
 
 - Componentes standalone, `OnPush`, **signals**, modo **zoneless**, `@defer` para telas pesadas.
 - **Reactive Forms**, não Signal Forms. Estado com signals + serviços, sem NgRx.

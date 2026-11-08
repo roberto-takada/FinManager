@@ -1,0 +1,147 @@
+<div class="space-y-6">
+  <div class="print:hidden">
+    <h1 tabindex="-1" class="text-3xl font-bold text-gray-900">Criar seu cofre</h1>
+    <p class="mt-2 text-gray-700">
+      Seus dados financeiros ficam só neste navegador, protegidos por uma senha mestra.
+      @if (etapa() === 'senha') {
+        Etapa 1 de 2: senha mestra.
+      } @else {
+        Etapa 2 de 2: chave de recuperação.
+      }
+    </p>
+  </div>
+
+  @if (etapa() === 'senha') {
+    <form class="space-y-5 cartao" [formGroup]="formSenha" (ngSubmit)="avancar()" novalidate>
+      <div>
+        <label class="rotulo" for="senha">Senha mestra</label>
+        <input
+          id="senha"
+          class="campo"
+          formControlName="senha"
+          [type]="mostrarSenha() ? 'text' : 'password'"
+          autocomplete="new-password"
+          aria-describedby="senha-forca"
+          [attr.aria-invalid]="tentouAvancar() && formSenha.controls.senha.invalid"
+        />
+        <app-medidor-forca-senha idDescricao="senha-forca" [avaliacao]="avaliacao()" />
+        @if (tentouAvancar() && formSenha.controls.senha.invalid) {
+          <p class="erro" id="senha-erro">Escolha uma senha que atenda à força mínima.</p>
+        }
+      </div>
+
+      <div>
+        <label class="rotulo" for="confirmacao">Repita a senha mestra</label>
+        <input
+          id="confirmacao"
+          class="campo"
+          formControlName="confirmacao"
+          [type]="mostrarSenha() ? 'text' : 'password'"
+          autocomplete="new-password"
+          [attr.aria-invalid]="
+            tentouAvancar() &&
+            (formSenha.controls.confirmacao.invalid || formSenha.hasError('naoConferem'))
+          "
+          [attr.aria-describedby]="tentouAvancar() ? 'confirmacao-erro' : null"
+        />
+        @if (tentouAvancar() && formSenha.controls.confirmacao.invalid) {
+          <p class="erro" id="confirmacao-erro">Repita a senha mestra.</p>
+        } @else if (tentouAvancar() && formSenha.hasError('naoConferem')) {
+          <p class="erro" id="confirmacao-erro">As senhas não são iguais.</p>
+        }
+      </div>
+
+      <div class="flex items-center gap-2">
+        <input
+          id="mostrar-senha"
+          type="checkbox"
+          class="size-5 foco"
+          [checked]="mostrarSenha()"
+          (change)="mostrarSenha.set(!mostrarSenha())"
+        />
+        <label for="mostrar-senha">Mostrar senha</label>
+      </div>
+
+      <div class="space-y-3 aviso" role="note" aria-labelledby="aviso-titulo">
+        <h2 id="aviso-titulo" class="font-semibold">
+          Importante: não existe "esqueci minha senha"
+        </h2>
+        <p>
+          O FinManager não tem servidor e ninguém, nem o desenvolvedor, consegue ler ou recuperar
+          seus dados. Na próxima etapa você receberá uma
+          <strong>chave de recuperação</strong>. Se você perder a senha mestra <strong>e</strong> a
+          chave de recuperação, seus dados serão perdidos para sempre.
+        </p>
+        <div class="flex items-start gap-2">
+          <input
+            id="aviso-aceito"
+            type="checkbox"
+            class="mt-1 size-5 shrink-0 foco"
+            formControlName="avisoAceito"
+            [attr.aria-invalid]="tentouAvancar() && formSenha.controls.avisoAceito.invalid"
+            [attr.aria-describedby]="tentouAvancar() ? 'aviso-erro' : null"
+          />
+          <label for="aviso-aceito">
+            Entendi que, se eu perder a senha mestra e a chave de recuperação, meus dados não
+            poderão ser recuperados por ninguém.
+          </label>
+        </div>
+        @if (tentouAvancar() && formSenha.controls.avisoAceito.invalid) {
+          <p class="erro" id="aviso-erro">Você precisa confirmar que entendeu o aviso.</p>
+        }
+      </div>
+
+      <button type="submit" class="botao-primario">Continuar</button>
+    </form>
+  } @else {
+    <section class="space-y-5" aria-labelledby="titulo-chave">
+      <h2 id="titulo-chave" #tituloChave tabindex="-1" class="text-2xl font-semibold print:hidden">
+        Guarde sua chave de recuperação
+      </h2>
+      <p class="print:hidden">
+        Anote ou imprima a chave abaixo e guarde-a fora do computador. Ela é a única forma de
+        redefinir a senha mestra se você esquecê-la. Ela não será mostrada de novo.
+      </p>
+
+      <app-exibicao-chave-recuperacao [chave]="chave()" />
+
+      <form
+        class="space-y-5 cartao print:hidden"
+        [formGroup]="formChave"
+        (ngSubmit)="criar()"
+        novalidate
+      >
+        <app-confirmacao-grupos-chave
+          [form]="formChave"
+          [grupos]="grupos()"
+          [mostrarErros]="tentouCriar()"
+        />
+        @if (tentouCriar() && formChave.invalid) {
+          <p class="erro">Preencha os dois grupos.</p>
+        }
+
+        @if (erro(); as mensagem) {
+          <p class="alerta-erro" role="alert">{{ mensagem }}</p>
+        }
+
+        <div class="flex flex-wrap gap-3">
+          <button type="button" class="botao-secundario" (click)="voltar()" [disabled]="criando()">
+            Voltar
+          </button>
+          <button
+            type="submit"
+            class="botao-primario"
+            [disabled]="criando()"
+            [attr.aria-busy]="criando()"
+          >
+            @if (criando()) {
+              Criando cofre…
+            } @else {
+              Criar cofre
+            }
+          </button>
+        </div>
+      </form>
+    </section>
+  }
+</div>

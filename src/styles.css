@@ -1,3 +1,56 @@
-/* You can add global styles to this file, and also import other style files */
-
 @import 'tailwindcss';
+
+/*
+ * Componentes base do design system (ENGENHARIA_DE_SOFTWARE §7.1).
+ * Cores escolhidas para contraste ≥ 4,5:1 sobre branco (RNF-023) e foco sempre visível (RNF-021).
+ */
+@utility foco {
+  @apply focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-blue-700;
+}
+
+@utility botao {
+  @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-md px-4 py-2 font-medium foco transition-colors disabled:cursor-not-allowed disabled:opacity-60 motion-reduce:transition-none;
+}
+@utility botao-primario {
+  @apply botao bg-blue-700 text-white hover:bg-blue-800;
+}
+@utility botao-secundario {
+  @apply botao border border-gray-400 bg-white text-gray-900 hover:bg-gray-100;
+}
+@utility botao-perigo {
+  @apply botao bg-red-700 text-white hover:bg-red-800;
+}
+
+@utility link {
+  @apply rounded-sm text-blue-700 underline underline-offset-2 foco hover:text-blue-900;
+}
+
+@utility rotulo {
+  @apply block font-medium text-gray-900;
+}
+@utility campo {
+  @apply mt-1 block w-full rounded-md border border-gray-500 bg-white px-3 py-2 text-gray-900 foco aria-invalid:border-red-700;
+}
+@utility ajuda {
+  @apply mt-1 text-sm text-gray-700;
+}
+@utility erro {
+  @apply mt-1 text-sm font-medium text-red-700;
+}
+
+@utility cartao {
+  @apply rounded-lg border border-gray-300 bg-white p-6 shadow-sm;
+}
+@utility aviso {
+  @apply rounded-md border-l-4 border-amber-600 bg-amber-50 p-4 text-gray-900;
+}
+@utility alerta-erro {
+  @apply rounded-md border-l-4 border-red-700 bg-red-50 p-4 text-gray-900;
+}
+@utility alerta-sucesso {
+  @apply rounded-md border-l-4 border-green-700 bg-green-50 p-4 text-gray-900;
+}
+
+h1:focus {
+  outline: none;
+}
