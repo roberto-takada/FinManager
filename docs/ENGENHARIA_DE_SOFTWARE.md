@@ -1,6 +1,6 @@
 # FinManager — Documento de Engenharia de Software
 
-> **Versão:** 0.8
+> **Versão:** 0.10
 > **Data:** 2026-11-05
 > **Autor:** Roberto Takada
 > **Status:** Em elaboração — arquitetura, stack, hospedagem e licença definidas (ADR-0001 a ADR-0005)
@@ -322,6 +322,23 @@ Regras de implementação:
 - **Recarregar a página bloqueia o cofre**, já que a DEK só existe em memória.
 - **Apagar o cofre** exige digitar `APAGAR TUDO` e não exige senha, para que quem perdeu senha e chave possa recomeçar (RN-010).
 - A decisão de carregar tudo em memória após desbloquear evita índices em texto claro (que vazariam datas, valores ou categorias). É viável para o volume esperado (dezenas de milhares de registros).
+
+### 5.6.1 Armazenamento dos dados do usuário (implementado)
+- O IndexedDB (`finmanager`, versão 2) tem duas *stores*: `cofre` (metadados) e `dados`. Em `dados`, **cada coleção é um único bloco cifrado**: `contas`, `categorias`, `transacoes`, `recorrencias` e `historico`.
+- Cada bloco é `{ versao, iv, cifrado }`, com AES-256-GCM, IV novo a cada gravação e o nome da coleção como AAD (um bloco não pode ser trocado por outro). Dentro do texto cifrado há `{ versao, itens }`, para migrações futuras.
+- Nenhum campo fica em texto claro, então não há índice que vaze datas, valores ou nomes; o que se vê é só o tamanho aproximado de cada coleção.
+- Uma operação que altera várias coleções (ex.: excluir uma transação e registrar o evento no histórico) grava tudo em **uma única transação do IndexedDB** (RNF-013). A memória só muda depois que a gravação termina; as gravações são serializadas.
+- O `DadosService` decifra tudo ao desbloquear e descarta ao bloquear. Ao carregar, faz a manutenção: categorias padrão no primeiro acesso, expurgo de itens e eventos com mais de 180 dias (RF-078) e geração das ocorrências pendentes das recorrências (RF-012).
+- **Os guards de uma rota rodam em paralelo:** `carregar()` não faz nada com o cofre bloqueado, para não entrar em estado de erro antes do redirecionamento ao desbloqueio.
+
+### 5.6.2 Regras de transações implementadas (RF-010 a RF-017)
+- **Datas de calendário** (`AAAA-MM-DD`), sem fuso, para uma transação não "mudar de dia".
+- **Edição significativa** (RN-005 b): valor, data ou tipo. Pede confirmação e grava o estado anterior no histórico. Descrição, categoria e conta podem ser editadas sem confirmação. Incluir o tipo foi confirmado pelo usuário em 2026-11-08, porque mudar o tipo inverte o efeito no saldo.
+- **Parcelamento** (RF-013): **suspenso até o RF-100** (decisão de 2026-11-08). As regras estão prontas e testadas no domínio (`gerarParcelas`: despesa de 2 a 48 vezes, uma parcela por mês a partir da data da compra, resto dos centavos na 1ª parcela, data da compra guardada em todas), mas `PARCELAMENTO_HABILITADO = false` em `transacoes.service.ts` faz o serviço recusar parcelamentos e esconde a opção do formulário. Exclusão em lote (RN-005 c) e edição de parcelas continuam funcionando para parcelas já existentes. Ao implementar o RF-100: atribuir cada parcela à fatura correspondente, ligar a flag e restaurar os testes de parcelamento.
+- **Recorrência** (RF-012): guarda um modelo e a marca `geradaAte`; as ocorrências até hoje viram transações normais. Por causa da marca, uma ocorrência excluída não é recriada, nem depois de expurgada. Excluir a recorrência não apaga as transações já geradas. Manter as transações já geradas ao excluir a recorrência foi confirmado pelo usuário em 2026-11-08.
+- **Transferência** (RF-017): uma transação com conta de origem e de destino, sem categoria, fora dos totais de receitas e despesas.
+- **Contas e categorias em uso não podem ser excluídas** (confirmado pelo usuário em 2026-11-08). Assim nenhuma transação aponta para um item na lixeira. Pela mesma razão, uma transação só é restaurada se a conta e a categoria dela estiverem ativas. Ao restaurar uma conta ou categoria com nome já usado, o nome ganha "(restaurada)".
+- **Saldo atual** = saldo inicial + transações com data até hoje; parcelas e lançamentos futuros só contam quando a data chega.
 
 ### 5.7 Formato do arquivo de backup (RN-012)
 Arquivo `.json` com um cabeçalho legível e um conteúdo totalmente cifrado:
@@ -717,3 +734,5 @@ FinManager/
 | 0.6 | 2026-11-05 | Roberto Takada | Hospedagem no GitHub Pages e licença GPL-3.0 (ADR-0005): CSP por `<meta>`, anti-clickjacking em código, deploy com base-href e 404.html, risco R-16 (origem compartilhada), licenças compatíveis na política de dependências. |
 | 0.7 | 2026-11-06 | Roberto Takada | CSP implementada e testada: `style-src 'unsafe-inline'` justificado, `inlineCritical` desativado, testes E2E de segurança; WebKit opcional localmente. |
 | 0.8 | 2026-11-06 | Roberto Takada | Cofre implementado (RF-001 a RF-007): parâmetros do Argon2id calibrados (64 MiB, t=10), AAD por envelope, DEK não extraível, atraso progressivo, diálogo de confirmação nativo. |
+| 0.9 | 2026-11-08 | Roberto Takada | Transações implementadas (RF-010 a RF-017, exceto RF-018): armazenamento por coleção cifrada (5.6.1), regras de transações (5.6.2), histórico e lixeira (RF-075, RF-076, RF-078). |
+| 0.10 | 2026-11-08 | Roberto Takada | Decisões confirmadas (exclusão bloqueada para contas/categorias em uso, tipo como alteração significativa, recorrência excluída mantém transações). Parcelamento suspenso até o RF-100. |

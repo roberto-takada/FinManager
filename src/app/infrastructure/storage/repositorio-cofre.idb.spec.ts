@@ -1,5 +1,6 @@
 import 'fake-indexeddb/auto';
 import type { MetadadosCofre } from '../../application/ports/cofre.ports';
+import { BancoIdb } from './banco-idb';
 import { FormatoCofreDesconhecidoError, RepositorioCofreIdb } from './repositorio-cofre.idb';
 
 const envelope = {
@@ -22,7 +23,7 @@ describe('RepositorioCofreIdb', () => {
 
   beforeEach(() => {
     nome = `finmanager-teste-${crypto.randomUUID()}`;
-    repositorio = new RepositorioCofreIdb(nome);
+    repositorio = new RepositorioCofreIdb(new BancoIdb(nome));
   });
 
   afterEach(async () => {
@@ -40,7 +41,7 @@ describe('RepositorioCofreIdb', () => {
 
   it('persiste entre instâncias (como ao recarregar a página)', async () => {
     await repositorio.salvar(metadados);
-    expect(await new RepositorioCofreIdb(nome).ler()).toEqual(metadados);
+    expect(await new RepositorioCofreIdb(new BancoIdb(nome)).ler()).toEqual(metadados);
   });
 
   it('apagarTudo remove o banco inteiro (RF-006)', async () => {
@@ -53,7 +54,7 @@ describe('RepositorioCofreIdb', () => {
   });
 
   it('apagarTudo não fica bloqueado por outra conexão aberta (outra aba)', async () => {
-    const outraAba = new RepositorioCofreIdb(nome);
+    const outraAba = new RepositorioCofreIdb(new BancoIdb(nome));
     await outraAba.salvar(metadados);
 
     await repositorio.apagarTudo();

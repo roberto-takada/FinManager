@@ -1,4 +1,5 @@
 import { type CodigoErroCofre, ErroCofre } from '../../../application/cofre/cofre.service';
+import { ErroDominio } from '../../../domain/shared/erro-dominio';
 
 const MENSAGENS: Record<CodigoErroCofre, string> = {
   'cofre-existente': 'Já existe um cofre neste navegador.',
@@ -13,6 +14,8 @@ const MENSAGENS: Record<CodigoErroCofre, string> = {
 /** Converte um erro em mensagem para o usuário, sem expor detalhes técnicos. */
 export function mensagemDeErro(erro: unknown): string {
   if (erro instanceof ErroCofre) return MENSAGENS[erro.codigo];
+  // Regras de negócio já trazem mensagens prontas para o usuário.
+  if (erro instanceof ErroDominio) return erro.message;
   console.error(erro);
   return 'Ocorreu um erro inesperado. Nenhum dado foi alterado. Tente novamente.';
 }

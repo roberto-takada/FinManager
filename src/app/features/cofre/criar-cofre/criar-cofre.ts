@@ -11,6 +11,7 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { CofreService } from '../../../application/cofre/cofre.service';
+import { DadosService } from '../../../application/dados/dados.service';
 import {
   conferirGrupos,
   escolherGruposParaConfirmacao,
@@ -45,6 +46,7 @@ type Etapa = 'senha' | 'chave';
 })
 export class CriarCofre {
   private readonly cofre = inject(CofreService);
+  private readonly dados = inject(DadosService);
   private readonly router = inject(Router);
   private readonly fb = inject(NonNullableFormBuilder);
 
@@ -62,6 +64,8 @@ export class CriarCofre {
       senha: ['', [Validators.required, senhaForte]],
       confirmacao: ['', [Validators.required]],
       avisoAceito: [false, [Validators.requiredTrue]],
+      /** RNF-061: usuário fictício com 6 meses de uso. */
+      demonstracao: [false],
     },
     { validators: camposIguais('senha', 'confirmacao') },
   );
@@ -111,10 +115,11 @@ export class CriarCofre {
       return;
     }
 
-    const { senha, avisoAceito } = this.formSenha.getRawValue();
+    const { senha, avisoAceito, demonstracao } = this.formSenha.getRawValue();
     this.criando.set(true);
     try {
       await this.cofre.criar(senha, this.chave(), avisoAceito);
+      if (demonstracao) await this.dados.popularDemonstracao();
       this.formSenha.reset();
       this.chave.set('');
       await this.router.navigateByUrl('/');

@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Estado do projeto
 
-FinManager é um webapp de finanças pessoais **local-first, sem servidor, com criptografia ponta a ponta**. Implementado até agora: o **cofre** (RF-001 a RF-007: criar, desbloquear/bloquear, chave de recuperação, trocar senha, bloqueio automático, apagar). Ainda não há dados financeiros. Toda a documentação, a interface e os commits são em **português (pt-BR)**.
+FinManager é um webapp de finanças pessoais **local-first, sem servidor, com criptografia ponta a ponta**. Implementado até agora: o **cofre** (RF-001 a RF-007) e as **transações** (RF-010 a RF-017: contas, categorias, receitas/despesas, recorrência, transferência, filtros), com histórico e lixeira (RF-075, RF-076, RF-078) e dados de demonstração na criação do cofre (RNF-061). RF-018 (importação CSV/OFX) foi adiado para depois da 1.0. **O parcelamento (RF-013) está suspenso até o RF-100** (faturas do cartão): as regras existem no domínio, mas `PARCELAMENTO_HABILITADO = false` em `application/transacoes/transacoes.service.ts` desliga a funcionalidade; não reative sem implementar a atribuição à fatura. As telas ainda não foram estilizadas de propósito: o foco atual é a funcionalidade. Toda a documentação, a interface e os commits são em **português (pt-BR)**.
 
 Fontes de verdade (leia a seção relevante antes de implementar):
 - `docs/ENGENHARIA_DE_REQUISITOS.md`: **o quê**. Regras de negócio (RN-xxx), requisitos funcionais (RF-xxx) e não funcionais (RNF-xxx), histórias de usuário com critérios Dado/Quando/Então (US-xxx), questões resolvidas (QA-xxx) e releases (MVP = v0.1).
@@ -35,10 +35,12 @@ Antes de dar uma tarefa por concluída, rode `format:check`, `lint`, `typecheck`
 - O `pnpm-workspace.yaml` define `minimumReleaseAge` (1 dia) e bloqueia scripts de instalação (`allowBuilds`). Não relaxe essas regras sem justificativa.
 - O Prettier ignora `*.md`, para não realinhar as tabelas da documentação.
 - **Testes unitários usam criptografia real** com Argon2id barato (`PARAMETROS_KDF_TESTE` em `src/testing/cofre.ts`, fora do build). Utilitários de teste ficam em `src/testing/`; specs podem importar qualquer camada (a regra de fronteiras é desligada para `*.spec.ts`).
-- **E2E: recarregar a página bloqueia o cofre** (a chave só existe em memória). Para ir a telas internas, navegue pelo menu (`irParaSeguranca` em `e2e/cofre.helpers.ts`), não com `page.goto`.
+- **Testes de aplicação** usam `prepararAmbienteDados()` (`src/testing/dados.ts`): cofre criado, relógio controlável (`definirAgora`), ids sequenciais e armazenamento em memória que simula falhas. Fábricas de entidades em `src/testing/fabricas.ts`.
+- **E2E: a lista de transações mostra 100 por vez**; para contar itens antigos (ex.: dados de demonstração), filtre pela busca antes.
+- **E2E: recarregar a página bloqueia o cofre** (a chave só existe em memória). Para ir a telas internas, navegue pelo menu (`irPeloMenu` em `e2e/cofre.helpers.ts`), não com `page.goto`.
 - **Firefox do Playwright + axe na tela de Segurança** derruba a página de forma intermitente (bug do navegador, isolado); esses 2 testes de acessibilidade estão como `fixme` só no Firefox.
 - **WebKit** do Playwright não roda no CachyOS (faltam bibliotecas do Ubuntu): localmente só Chromium e Firefox; WebKit roda no CI ou com `E2E_WEBKIT=1`.
-- Ainda não configurados: `fake-indexeddb`, service worker e deploy. O build para o GitHub Pages deverá usar `--base-href /FinManager/` e copiar `index.html` para `404.html`.
+- Ainda não configurados: service worker e deploy. O build para o GitHub Pages deverá usar `--base-href /FinManager/` e copiar `index.html` para `404.html`.
 
 ### CSP e segurança da página
 - A CSP está em `<meta>` no `src/index.html` e é verificada por `e2e/seguranca.spec.ts` (sem violações, sem requisições externas, `connect-src` bloqueando `fetch`, Trusted Types ativo, proteção contra iframe).
@@ -86,7 +88,12 @@ src/app/
 
 ## Convenções Angular e de código
 
-- Para usar a DEK nos futuros repositórios de dados, chame `CofreService.chaveDeDados()` (lança `ErroCofre('cofre-bloqueado')` se bloqueado). Nunca guarde a DEK em outro lugar.
+- **Dados do usuário:** toda alteração passa por `DadosService.alterar(atual => ({ mudancas, resultado }))`, que grava as coleções alteradas de forma atômica e só depois atualiza os signals. Não escreva no `ArmazenamentoDados` por fora, nem guarde a DEK fora do `CofreService`.
+- Nova coleção persistida: acrescente-a em `Colecao`/`COLECOES` (`application/ports/dados.ports.ts`) e em `Colecoes` no `DadosService`. Nova *store* no IndexedDB: incremente `VERSAO_BANCO` em `banco-idb.ts` com uma migração incremental.
+- Exclusões são lógicas (`excluidoEm`) e registram um evento com `estadoAnterior` via `DadosService.evento()`. Restaurar fica no `HistoricoService`, que recusa itens cujas dependências estejam na lixeira.
+- Regras de negócio lançam `ErroDominio` (mensagem pronta em pt-BR, com `campo` opcional); `mensagemDeErro()` em `features/cofre/compartilhado/mensagens.ts` converte erros para a tela.
+- **Os guards de uma rota rodam em paralelo**: um guard não pode assumir que outro já redirecionou.
+- **Formulários que continuam na mesma tela após salvar** (contas, categorias) limpam os campos ao enviar e só restauram se der erro; limpar depois do `await` apagaria o que o usuário digitou enquanto salvava.
 - Tailwind v4: classes próprias do design system ficam em `src/styles.css` como `@utility` (não `@layer components`), para poderem ser usadas com `@apply`.
 - A Web Crypto no TypeScript 6 exige `Uint8Array<ArrayBuffer>`; erros da Web Crypto devem ser identificados pelo `name` (`'OperationError'`), não por `instanceof DOMException`.
 

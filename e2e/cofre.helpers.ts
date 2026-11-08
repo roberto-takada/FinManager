@@ -26,18 +26,27 @@ export async function preencherGrupos(page: Page, chave: string, errado = false)
 }
 
 /** Primeira etapa da criação: senha + aviso. */
-export async function preencherSenhaDeCriacao(page: Page, senha = SENHA): Promise<void> {
+export async function preencherSenhaDeCriacao(
+  page: Page,
+  senha = SENHA,
+  demonstracao = false,
+): Promise<void> {
   await page.getByLabel('Senha mestra', { exact: true }).fill(senha);
   await page.getByLabel('Repita a senha mestra').fill(senha);
   await page.getByLabel(/Entendi que, se eu perder/).check();
+  if (demonstracao) await page.getByLabel('Preencher com dados de demonstração').check();
   await page.getByRole('button', { name: 'Continuar' }).click();
 }
 
 /** Cria o cofre pelo fluxo completo e devolve a chave de recuperação. */
-export async function criarCofre(page: Page, senha = SENHA): Promise<string> {
+export async function criarCofre(
+  page: Page,
+  senha = SENHA,
+  opcoes: { demonstracao?: boolean } = {},
+): Promise<string> {
   await page.goto('/');
   await expect(page).toHaveURL(/\/cofre\/criar$/);
-  await preencherSenhaDeCriacao(page, senha);
+  await preencherSenhaDeCriacao(page, senha, opcoes.demonstracao);
   const chave = await lerChaveExibida(page);
   await preencherGrupos(page, chave);
   await page.getByRole('button', { name: 'Criar cofre' }).click();
@@ -45,14 +54,16 @@ export async function criarCofre(page: Page, senha = SENHA): Promise<string> {
   return chave;
 }
 
-/** Vai para Segurança pelo menu (recarregar a página bloquearia o cofre). */
-export async function irParaSeguranca(page: Page): Promise<void> {
+/** Navega pelo menu (recarregar a página bloquearia o cofre). */
+export async function irPeloMenu(page: Page, item: string, titulo = item): Promise<void> {
   await page
     .getByRole('navigation', { name: 'Principal' })
-    .getByRole('link', { name: 'Segurança' })
+    .getByRole('link', { name: item, exact: true })
     .click();
-  await expect(page.getByRole('heading', { level: 1, name: 'Segurança' })).toBeVisible();
+  await expect(page.getByRole('heading', { level: 1, name: titulo })).toBeVisible();
 }
+
+export const irParaSeguranca = (page: Page) => irPeloMenu(page, 'Segurança');
 
 export async function bloquear(page: Page): Promise<void> {
   await page.getByRole('button', { name: 'Bloquear cofre' }).click();

@@ -1,7 +1,9 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { PARAMETROS_KDF_TESTE, RepositorioCofreEmMemoria, SENHA_TESTE } from '../testing/cofre';
+import { ArmazenamentoEmMemoria } from '../testing/dados';
 import { App } from './app';
+import { ARMAZENAMENTO_DADOS } from './application/ports/dados.ports';
 import { CofreService } from './application/cofre/cofre.service';
 import { CRIPTOGRAFIA_COFRE, REPOSITORIO_COFRE } from './application/ports/cofre.ports';
 import { CriptografiaCofreWebCrypto } from './infrastructure/crypto/criptografia-cofre.webcrypto';
@@ -17,6 +19,7 @@ describe('App (shell)', () => {
           useValue: new CriptografiaCofreWebCrypto(PARAMETROS_KDF_TESTE),
         },
         { provide: REPOSITORIO_COFRE, useValue: new RepositorioCofreEmMemoria() },
+        { provide: ARMAZENAMENTO_DADOS, useValue: new ArmazenamentoEmMemoria() },
       ],
     });
   });

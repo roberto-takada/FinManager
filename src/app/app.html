@@ -9,21 +9,16 @@
     <p class="text-xl font-bold text-gray-900">FinManager</p>
     @if (cofre.desbloqueado()) {
       <nav aria-label="Principal" class="flex flex-wrap items-center gap-4">
-        <a
-          class="link"
-          routerLink="/"
-          routerLinkActive="font-semibold"
-          [routerLinkActiveOptions]="{ exact: true }"
-          ariaCurrentWhenActive="page"
-          >Início</a
-        >
-        <a
-          class="link"
-          routerLink="/seguranca"
-          routerLinkActive="font-semibold"
-          ariaCurrentWhenActive="page"
-          >Segurança</a
-        >
+        @for (item of menu; track item.rota) {
+          <a
+            class="link"
+            [routerLink]="item.rota"
+            routerLinkActive="font-semibold"
+            [routerLinkActiveOptions]="{ exact: item.rota === '/' }"
+            ariaCurrentWhenActive="page"
+            >{{ item.rotulo }}</a
+          >
+        }
         <button type="button" class="botao-secundario" (click)="bloquear()">Bloquear cofre</button>
       </nav>
     }
@@ -31,5 +26,11 @@
 </header>
 
 <main id="conteudo" class="mx-auto max-w-3xl px-4 py-8">
+  @if (dados.estado() === 'erro') {
+    <p class="mb-6 alerta-erro" role="alert">
+      Não foi possível decifrar os dados deste navegador. Bloqueie o cofre e tente desbloquear de
+      novo. Nenhum dado foi alterado.
+    </p>
+  }
   <router-outlet />
 </main>

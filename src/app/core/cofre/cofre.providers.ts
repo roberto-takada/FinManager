@@ -12,14 +12,23 @@ import { CofreService, type EstadoCofre } from '../../application/cofre/cofre.se
 import { CRIPTOGRAFIA_COFRE, REPOSITORIO_COFRE } from '../../application/ports/cofre.ports';
 import { CriptografiaCofreWebCrypto } from '../../infrastructure/crypto/criptografia-cofre.webcrypto';
 import { RepositorioCofreIdb } from '../../infrastructure/storage/repositorio-cofre.idb';
+import { ArmazenamentoDadosIdb } from '../../infrastructure/storage/armazenamento-dados.idb';
+import { BancoIdb } from '../../infrastructure/storage/banco-idb';
+import { DadosService } from '../../application/dados/dados.service';
+import { ARMAZENAMENTO_DADOS } from '../../application/ports/dados.ports';
 import { rotaPorEstado } from './cofre.guards';
 
 /** Liga as portas do cofre aos adaptadores reais e ativa os comportamentos globais. */
 export function provideCofre(): EnvironmentProviders {
   return makeEnvironmentProviders([
     { provide: CRIPTOGRAFIA_COFRE, useFactory: () => new CriptografiaCofreWebCrypto() },
-    { provide: REPOSITORIO_COFRE, useFactory: () => new RepositorioCofreIdb() },
+    // Um único banco IndexedDB, compartilhado pelos metadados do cofre e pelos dados cifrados.
+    { provide: BancoIdb, useFactory: () => new BancoIdb() },
+    { provide: REPOSITORIO_COFRE, useFactory: () => new RepositorioCofreIdb(inject(BancoIdb)) },
+    { provide: ARMAZENAMENTO_DADOS, useFactory: () => new ArmazenamentoDadosIdb(inject(BancoIdb)) },
     provideEnvironmentInitializer(() => inject(BloqueioAutomaticoService)),
+    // Carrega os dados ao desbloquear e os descarta ao bloquear.
+    provideEnvironmentInitializer(() => inject(DadosService)),
     provideEnvironmentInitializer(redirecionarAoPerderAcesso),
   ]);
 }

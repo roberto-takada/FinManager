@@ -1,6 +1,7 @@
 import { inject } from '@angular/core';
 import { type CanActivateFn, Router } from '@angular/router';
 import { CofreService, type EstadoCofre } from '../../application/cofre/cofre.service';
+import { DadosService } from '../../application/dados/dados.service';
 
 export const ROTAS_COFRE = {
   inicio: '/',
@@ -10,6 +11,19 @@ export const ROTAS_COFRE = {
   apagar: '/cofre/apagar',
   seguranca: '/seguranca',
 } as const;
+
+/**
+ * Telas com dados financeiros: espera os dados serem decifrados. Se o carregamento
+ * falhar, a navegação segue e o shell exibe o erro (estado "erro" do DadosService).
+ */
+export const exigirDadosCarregados: CanActivateFn = async () => {
+  // Com o cofre bloqueado, carregar() não faz nada; o redirecionamento fica com
+  // exigirCofreDesbloqueado (os guards da rota rodam em paralelo).
+  await inject(DadosService)
+    .carregar()
+    .catch(() => undefined);
+  return true;
+};
 
 /** Para onde levar o usuário em cada estado do cofre. */
 export function rotaPorEstado(estado: EstadoCofre): string {

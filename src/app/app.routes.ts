@@ -3,8 +3,12 @@ import {
   exigirCofreBloqueado,
   exigirCofreDesbloqueado,
   exigirCofreExistente,
+  exigirDadosCarregados,
   exigirSemCofre,
 } from './core/cofre/cofre.guards';
+
+/** Telas com dados financeiros: cofre desbloqueado e dados decifrados. */
+const comDados = [exigirCofreDesbloqueado, exigirDadosCarregados];
 
 const titulo = (pagina: string) => `${pagina} — FinManager`;
 
@@ -15,6 +19,51 @@ export const routes: Routes = [
     title: titulo('Início'),
     canActivate: [exigirCofreDesbloqueado],
     loadComponent: () => import('./features/inicio/inicio').then((m) => m.Inicio),
+  },
+  {
+    path: 'transacoes',
+    title: titulo('Transações'),
+    canActivate: comDados,
+    loadComponent: () =>
+      import('./features/transacoes/lista-transacoes').then((m) => m.ListaTransacoes),
+  },
+  {
+    path: 'transacoes/nova',
+    title: titulo('Nova transação'),
+    canActivate: comDados,
+    loadComponent: () =>
+      import('./features/transacoes/formulario-transacao').then((m) => m.FormularioTransacao),
+  },
+  {
+    path: 'transacoes/:id',
+    title: titulo('Editar transação'),
+    canActivate: comDados,
+    loadComponent: () =>
+      import('./features/transacoes/formulario-transacao').then((m) => m.FormularioTransacao),
+  },
+  {
+    path: 'contas',
+    title: titulo('Contas'),
+    canActivate: comDados,
+    loadComponent: () => import('./features/contas/contas').then((m) => m.Contas),
+  },
+  {
+    path: 'categorias',
+    title: titulo('Categorias'),
+    canActivate: comDados,
+    loadComponent: () => import('./features/categorias/categorias').then((m) => m.Categorias),
+  },
+  {
+    path: 'recorrencias',
+    title: titulo('Recorrências'),
+    canActivate: comDados,
+    loadComponent: () => import('./features/recorrencias/recorrencias').then((m) => m.Recorrencias),
+  },
+  {
+    path: 'historico',
+    title: titulo('Histórico e lixeira'),
+    canActivate: comDados,
+    loadComponent: () => import('./features/historico/historico').then((m) => m.Historico),
   },
   {
     path: 'seguranca',

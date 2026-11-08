@@ -91,6 +91,23 @@
         }
       </div>
 
+      <div class="flex items-start gap-2">
+        <input
+          id="demonstracao"
+          type="checkbox"
+          class="mt-1 size-5 shrink-0 foco"
+          formControlName="demonstracao"
+          aria-describedby="demonstracao-ajuda"
+        />
+        <div>
+          <label for="demonstracao">Preencher com dados de demonstração</label>
+          <p class="ajuda" id="demonstracao-ajuda">
+            Cria contas, categorias e cerca de 6 meses de transações de um usuário fictício, para
+            explorar o app. Não use com seus dados reais.
+          </p>
+        </div>
+      </div>
+
       <button type="submit" class="botao-primario">Continuar</button>
     </form>
   } @else {

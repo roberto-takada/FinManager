@@ -1,6 +1,6 @@
 # FinManager — Documento de Engenharia de Requisitos
 
-> **Versão:** 0.5
+> **Versão:** 0.7
 > **Data:** 2026-11-05
 > **Autor:** Roberto Takada
 > **Status:** Em elaboração — todas as [Questões em Aberto](#10-questões-em-aberto) (QA-001 a QA-012) resolvidas
@@ -148,12 +148,12 @@ Já usa planilhas, tem algumas fontes de renda e investimentos. Quer relatórios
 | RF-010 | O sistema DEVE permitir cadastrar receitas e despesas com: valor, data, descrição, categoria e conta financeira. O valor é registrado na moeda do app. | Must |
 | RF-011 | O sistema DEVE permitir editar e excluir transações, respeitando RN-003 e RN-004. | Must |
 | RF-012 | O sistema DEVE permitir cadastrar transações recorrentes (mensal, semanal, anual etc.). | Must |
-| RF-013 | O sistema DEVE permitir transações parceladas (ex.: 10x no cartão), distribuindo cada parcela na fatura correspondente (ver seção 5.11). | Should |
+| RF-013 | O sistema DEVE permitir transações parceladas (ex.: 10x no cartão), distribuindo cada parcela na fatura correspondente (ver seção 5.11). **Suspenso até a implementação do RF-100** (decisão de 2026-11-08): sem as faturas, as parcelas não cairiam no mês certo. | Should (após RF-100) |
 | RF-014 | O sistema DEVE permitir filtrar e buscar transações por período, categoria, conta, tipo e texto. | Must |
 | RF-015 | O sistema DEVE permitir gerenciar categorias e subcategorias personalizadas. | Must |
 | RF-016 | O sistema DEVE permitir cadastrar contas financeiras (conta corrente, carteira, cartão de crédito, investimento). | Must |
 | RF-017 | O sistema DEVERIA permitir transferências entre contas financeiras do próprio usuário, sem impactar receitas/despesas. | Should |
-| RF-018 | O sistema PODE permitir importação de transações via arquivo (CSV/OFX). | Could |
+| RF-018 | O sistema PODE permitir importação de transações via arquivo (CSV/OFX). **Adiado para depois da release 1.0.** | Could (pós-1.0) |
 
 ### 5.3 Contas a Pagar / a Receber e Calendário (CAL)
 
@@ -483,7 +483,8 @@ erDiagram
 | **v0.2** | Planejamento | Contas a pagar/receber; calendário; notificações do navegador; recorrências; cartão de crédito e faturas; parcelamentos; cofrinhos; relatórios trimestral/semestral/anual. |
 | **v0.3** | Personalização e portfólio | Dashboard personalizável; temas e acessibilidade avançada; perfil; exportação de relatórios; modo demonstração; publicação em hospedagem estática. |
 | **v0.4** | Inteligência | Projeções; sugestão de categoria; detecção de anomalias; resumos em linguagem natural. |
-| **v0.5+** | Evolução | Câmbio via API e contas em múltiplas moedas (requer ADR revendo RN-011); PWA instalável/offline; lembretes de backup; importação CSV/OFX; iCal. |
+| **v0.5+** | Evolução | Câmbio via API e contas em múltiplas moedas (requer ADR revendo RN-011); PWA instalável/offline; lembretes de backup; iCal. |
+| **Pós-1.0** | Depois da primeira versão completa | Importação de transações via arquivo CSV/OFX (RF-018). |
 
 > **Por que o backup está no MVP:** sem servidor, a exportação é a única proteção contra perda de dados (RN-012, RN-014). Usar o app com dados reais sem backup seria um risco inaceitável.
 
@@ -582,3 +583,5 @@ Nenhuma no momento. Novas questões devem receber o próximo número (QA-013).
 | 0.3 | 2026-11-05 | Roberto Takada | Resolvidas QA-003, QA-004, QA-005, QA-007, QA-008, QA-009, QA-010 e QA-011. Novas RN-015, RF-007, RF-026, RF-065, RF-078, RF-079, RF-098, RF-099; novas seções 5.11 (Cartão e Faturas) e 5.12 (Moedas); US-011; nova QA-012. |
 | 0.4 | 2026-11-05 | Roberto Takada | Resolvida QA-012: uma única moeda por vez, trocável sem conversão; câmbio via API e múltiplas moedas adiados. Seção 5.12 reescrita; RN-005, RN-007, RN-015 e RF-098 ajustados. |
 | 0.5 | 2026-11-05 | Roberto Takada | Licença GPL-3.0 e hospedagem no GitHub Pages (RNF-060, RNF-062); nova RNF-064 (anti-clickjacking). |
+| 0.6 | 2026-11-08 | Roberto Takada | RF-018 (importação CSV/OFX) adiado para depois da release 1.0; nova linha "Pós-1.0" nas releases. |
+| 0.7 | 2026-11-08 | Roberto Takada | RF-013 (parcelamento) suspenso até a implementação do RF-100 (faturas do cartão). |
