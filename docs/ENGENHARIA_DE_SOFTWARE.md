@@ -1,6 +1,6 @@
 # FinManager — Documento de Engenharia de Software
 
-> **Versão:** 0.18
+> **Versão:** 0.19
 > **Data:** 2026-11-05
 > **Autor:** Roberto Takada
 > **Status:** Em elaboração — arquitetura, stack, hospedagem e licença definidas (ADR-0001 a ADR-0005)
@@ -655,7 +655,7 @@ GitHub Actions:
 | Demonstração | Versão publicada no **GitHub Pages** (`https://<usuario>.github.io/FinManager/`), com modo demonstração para visitantes do portfólio (RNF-061, RNF-062). |
 | Uso pessoal | A mesma build publicada; os dados reais ficam apenas no navegador do usuário, nunca no repositório nem na hospedagem. |
 
-Como não há backend, o "deploy" é apenas publicar arquivos estáticos: o GitHub Actions faz o build com `--base-href /FinManager/`, copia `index.html` para `404.html` (rotas da SPA) e publica no GitHub Pages a cada merge na `main`.
+Como não há backend, o "deploy" é apenas publicar arquivos estáticos: o GitHub Actions faz o build com `--base-href /FinManager/`, copia `index.html` para `404.html` (rotas da SPA) e publica no GitHub Pages a cada merge na `main`. **Implementado** em `.github/workflows/deploy-pages.yml`: formatação, lint, tipos e testes unitários antes do `pnpm build:pages` (`scripts/preparar-pages.mjs` gera `404.html` e `.nojekyll`); se algo falhar, nada é publicado. Os E2E no CI ficam para um workflow próprio.
 
 ---
 
@@ -826,3 +826,4 @@ FinManager/
 | 0.16 | 2026-11-08 | Roberto Takada | Dashboard implementada (RF-040 a RF-045): seção 5.6.5 (widgets, layout nas preferências cifradas, personalização por teclado, cálculo do patrimônio e das despesas por categoria, gráficos acessíveis com Chart.js sob demanda) e diretrizes em 7.2. |
 | 0.17 | 2026-11-08 | Roberto Takada | Decisões da dashboard confirmadas pelo usuário (5.6.5); arrastar e soltar (RF-046) e seletor de período (RF-047) adiados para depois da 1.0. |
 | 0.18 | 2026-11-08 | Roberto Takada | Relatórios (5.6.6) e perfil, acessibilidade e exportação (5.6.7) implementados; exemplo do formato de backup (5.7) atualizado para os envelopes Argon2id reais. |
+| 0.19 | 2026-11-09 | Roberto Takada | Deploy no GitHub Pages implementado (workflow de publicação e `build:pages`), seção 9.5. |

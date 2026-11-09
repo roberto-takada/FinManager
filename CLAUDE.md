@@ -43,7 +43,7 @@ Antes de dar uma tarefa por concluída, rode `format:check`, `lint`, `typecheck`
 - **E2E: recarregar a página bloqueia o cofre** (a chave só existe em memória). Para ir a telas internas, navegue pelo menu (`irPeloMenu` em `e2e/cofre.helpers.ts`), não com `page.goto`.
 - **Firefox do Playwright + axe na tela de Segurança** derruba a página de forma intermitente (bug do navegador, isolado); esses 2 testes de acessibilidade estão como `fixme` só no Firefox.
 - **WebKit** do Playwright não roda no CachyOS (faltam bibliotecas do Ubuntu): localmente só Chromium e Firefox; WebKit roda no CI ou com `E2E_WEBKIT=1`.
-- Ainda não configurados: service worker e deploy. O build para o GitHub Pages deverá usar `--base-href /FinManager/` e copiar `index.html` para `404.html`.
+- **Deploy:** `.github/workflows/deploy-pages.yml` publica no GitHub Pages a cada push na `main` (verificações rápidas + `pnpm build:pages`, que usa `--base-href /FinManager/` e gera `404.html` e `.nojekyll` via `scripts/preparar-pages.mjs`). No repositório, *Settings → Pages → Source* deve ser **GitHub Actions**. Os E2E ainda não rodam no CI. Service worker ainda não configurado.
 
 ### CSP e segurança da página
 - A CSP está em `<meta>` no `src/index.html` e é verificada por `e2e/seguranca.spec.ts` (sem violações, sem requisições externas, `connect-src` bloqueando `fetch`, Trusted Types ativo, proteção contra iframe).
