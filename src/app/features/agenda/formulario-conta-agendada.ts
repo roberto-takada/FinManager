@@ -26,6 +26,8 @@ import { lerDinheiro, paraTextoEditavel } from '../../domain/shared/dinheiro';
 import { DialogoConfirmacao } from '../../ui/dialogo-confirmacao/dialogo-confirmacao';
 import { mensagemDeErro } from '../cofre/compartilhado/mensagens';
 import { AvisoNavegacao } from '../compartilhado/aviso-navegacao';
+import { AvisoRascunho } from '../compartilhado/aviso-rascunho';
+import { rascunhoDoFormulario } from '../compartilhado/rascunho-formulario';
 import { mensagemValor, valorMonetario } from '../compartilhado/validadores-financeiros';
 
 /**
@@ -34,7 +36,7 @@ import { mensagemValor, valorMonetario } from '../compartilhado/validadores-fina
  */
 @Component({
   selector: 'app-formulario-conta-agendada',
-  imports: [ReactiveFormsModule, RouterLink, DialogoConfirmacao],
+  imports: [ReactiveFormsModule, RouterLink, DialogoConfirmacao, AvisoRascunho],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="max-w-2xl space-y-6">
@@ -49,6 +51,7 @@ import { mensagemValor, valorMonetario } from '../compartilhado/validadores-fina
         <p class="alerta-erro" role="alert">Conta não encontrada.</p>
       } @else {
         <form class="space-y-4 cartao" [formGroup]="form" (ngSubmit)="enviar()" novalidate>
+          <app-aviso-rascunho [rascunho]="rascunho" />
           <fieldset>
             <legend class="rotulo">Tipo</legend>
             <div class="mt-1 flex gap-4">
@@ -226,9 +229,18 @@ export class FormularioContaAgendada implements OnInit {
       .map((c) => ({ id: c.id, rotulo: rotuloCategoria(c, todas) }));
   });
 
+  /** RF-070 a RF-072: rascunho automático e aviso ao sair sem salvar. */
+  readonly rascunho = rascunhoDoFormulario(this.form);
+
   ngOnInit(): void {
     const id = this.id();
-    if (!id) return;
+    if (!id) {
+      this.rascunho.iniciar({
+        chave: 'contaAgendada:nova',
+        titulo: 'Nova conta a pagar ou a receber',
+      });
+      return;
+    }
     const conta = this.dados.contasAgendadas().find((c) => c.id === id && c.excluidoEm === null);
     if (!conta) return;
     this.original.set(conta);
@@ -242,6 +254,10 @@ export class FormularioContaAgendada implements OnInit {
       repetir: conta.recorrencia !== null,
       frequencia: conta.recorrencia?.frequencia ?? 'mensal',
       fim: conta.recorrencia?.fim ?? '',
+    });
+    this.rascunho.iniciar({
+      chave: `contaAgendada:editar:${id}`,
+      titulo: `Editar conta "${conta.descricao}"`,
     });
   }
 
@@ -278,8 +294,9 @@ export class FormularioContaAgendada implements OnInit {
     this.salvando.set(true);
     try {
       const original = this.original();
-      if (original) await this.agenda.editar(original.id, dados);
-      else await this.agenda.criar(dados);
+      await this.rascunho.concluir<unknown>(() =>
+        original ? this.agenda.editar(original.id, dados) : this.agenda.criar(dados),
+      );
       this.aviso.definir(original ? 'Conta salva.' : 'Conta adicionada.');
       await this.router.navigateByUrl('/agenda');
     } catch (e) {

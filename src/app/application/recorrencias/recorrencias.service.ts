@@ -2,7 +2,7 @@ import { computed, inject, Injectable } from '@angular/core';
 import { ativos } from '../../domain/shared/entidade';
 import { buscarAtivo, marcarExcluido, substituir } from '../dados/colecoes';
 import { DadosService } from '../dados/dados.service';
-import { resumoRecorrencia } from '../historico/resumos';
+import { resumoRecorrencia } from '../../domain/historico/resumos';
 
 /** Recorrências (RF-012). A criação acontece em TransacoesService.criar. */
 @Injectable({ providedIn: 'root' })

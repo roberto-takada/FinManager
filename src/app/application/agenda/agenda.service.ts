@@ -18,7 +18,7 @@ import { ErroDominio } from '../../domain/shared/erro-dominio';
 import { type Transacao, validarTransacao } from '../../domain/transacoes/transacao';
 import { buscarAtivo, marcarExcluido, substituir } from '../dados/colecoes';
 import { DadosService } from '../dados/dados.service';
-import { resumoContaAgendada, resumoTransacao } from '../historico/resumos';
+import { resumoContaAgendada, resumoTransacao } from '../../domain/historico/resumos';
 
 export interface DadosPagamento {
   readonly contaAgendadaId: string;

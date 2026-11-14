@@ -19,6 +19,7 @@ import {
 } from '../../domain/transacoes/transacao';
 import { DialogoConfirmacao } from '../../ui/dialogo-confirmacao/dialogo-confirmacao';
 import { mensagemDeErro } from '../cofre/compartilhado/mensagens';
+import { DesfazerExclusao } from '../compartilhado/aviso-desfazer';
 
 const POR_PAGINA = 100;
 
@@ -262,6 +263,7 @@ export class ListaTransacoes {
   protected readonly limite = signal(POR_PAGINA);
   protected readonly alvo = signal<Transacao | null>(null);
   protected readonly excluirLote = signal(false);
+  private readonly desfazer = inject(DesfazerExclusao);
   protected readonly mensagem = signal<string | null>(null);
 
   protected readonly opcoesCategoria = computed(() => {
@@ -327,6 +329,11 @@ export class ListaTransacoes {
     try {
       if (this.excluirLote() && t.parcela) await this.transacoes.excluirParcelas(t.parcela.grupoId);
       else await this.transacoes.excluir(t.id);
+      this.desfazer.oferecer(
+        this.excluirLote() && t.parcela
+          ? 'Parcelas excluídas e enviadas à lixeira.'
+          : `Transação "${descricaoExibida(t)}" excluída e enviada à lixeira.`,
+      );
     } catch (erro) {
       this.mensagem.set(mensagemDeErro(erro));
     }

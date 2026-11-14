@@ -15,11 +15,13 @@ import { DadosService } from '../../application/dados/dados.service';
 import type { Categoria, TipoMovimento } from '../../domain/categorias/categoria';
 import { mensagemDeErro } from '../cofre/compartilhado/mensagens';
 import { AvisoNavegacao } from '../compartilhado/aviso-navegacao';
+import { AvisoRascunho } from '../compartilhado/aviso-rascunho';
+import { rascunhoDoFormulario } from '../compartilhado/rascunho-formulario';
 
 /** Página de criação (`/categorias/nova`) e edição (`/categorias/:id/editar`) (RF-015). */
 @Component({
   selector: 'app-formulario-categoria',
-  imports: [ReactiveFormsModule, RouterLink],
+  imports: [ReactiveFormsModule, RouterLink, AvisoRascunho],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="max-w-2xl space-y-6">
@@ -34,6 +36,7 @@ import { AvisoNavegacao } from '../compartilhado/aviso-navegacao';
         <p class="alerta-erro" role="alert">Categoria não encontrada.</p>
       } @else {
         <form class="space-y-4 cartao" [formGroup]="form" (ngSubmit)="salvar()" novalidate>
+          <app-aviso-rascunho [rascunho]="rascunho" />
           <div>
             <label class="rotulo" for="categoria-nome">Nome da categoria</label>
             <input
@@ -100,6 +103,8 @@ export class FormularioCategoria implements OnInit {
   private readonly tipoEscolhido = toSignal(this.form.controls.tipo.valueChanges, {
     initialValue: 'despesa' as TipoMovimento,
   });
+  /** RF-070 a RF-072: rascunho automático e aviso ao sair sem salvar. */
+  readonly rascunho = rascunhoDoFormulario(this.form);
   protected readonly original = signal<Categoria | null>(null);
   protected readonly tentou = signal(false);
   protected readonly salvando = signal(false);
@@ -115,11 +120,18 @@ export class FormularioCategoria implements OnInit {
 
   ngOnInit(): void {
     const id = this.id();
-    if (!id) return;
+    if (!id) {
+      this.rascunho.iniciar({ chave: 'categoria:nova', titulo: 'Nova categoria' });
+      return;
+    }
     const c = this.dados.categorias().find((x) => x.id === id && x.excluidoEm === null);
     if (!c) return;
     this.original.set(c);
     this.form.setValue({ nome: c.nome, tipo: c.tipo, paiId: c.paiId ?? '' });
+    this.rascunho.iniciar({
+      chave: `categoria:editar:${id}`,
+      titulo: `Editar categoria "${c.nome}"`,
+    });
   }
 
   protected async salvar(): Promise<void> {
@@ -130,9 +142,11 @@ export class FormularioCategoria implements OnInit {
     this.salvando.set(true);
     try {
       const original = this.original();
-      if (original)
-        await this.categorias.editar(original.id, { nome: v.nome, paiId: v.paiId || null });
-      else await this.categorias.criar({ nome: v.nome, tipo: v.tipo, paiId: v.paiId || null });
+      await this.rascunho.concluir(() =>
+        original
+          ? this.categorias.editar(original.id, { nome: v.nome, paiId: v.paiId || null })
+          : this.categorias.criar({ nome: v.nome, tipo: v.tipo, paiId: v.paiId || null }),
+      );
       this.aviso.definir(original ? 'Categoria salva.' : 'Categoria adicionada.');
       await this.router.navigateByUrl('/categorias');
     } catch (e) {

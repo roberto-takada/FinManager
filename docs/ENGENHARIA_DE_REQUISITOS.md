@@ -1,7 +1,7 @@
 # FinManager — Documento de Engenharia de Requisitos
 
-> **Versão:** 0.12
-> **Data:** 2026-11-05
+> **Versão:** 0.13
+> **Data:** 2026-11-09
 > **Autor:** Roberto Takada
 > **Status:** Em elaboração — todas as [Questões em Aberto](#10-questões-em-aberto) (QA-001 a QA-012) resolvidas
 
@@ -215,16 +215,16 @@ Já usa planilhas, tem algumas fontes de renda e investimentos. Quer relatórios
 
 | ID | Requisito | Prioridade |
 |----|-----------|-----------|
-| RF-070 | O sistema DEVE salvar automaticamente formulários em edição no armazenamento local do navegador, de forma criptografada (RN-001, RN-002). | Must |
-| RF-071 | Ao reabrir o app, o sistema DEVE detectar rascunhos pendentes e oferecer "Restaurar" ou "Descartar". | Must |
-| RF-072 | O sistema DEVE avisar o usuário ao tentar sair/fechar a página com alterações não salvas. | Must |
-| RF-073 | O sistema DEVE funcionar integralmente sem conexão com a internet após o primeiro carregamento (aplicativo instalável/offline — PWA). | Should |
+| RF-070 | O sistema DEVE salvar automaticamente formulários em edição no armazenamento local do navegador, de forma criptografada (RN-001, RN-002). Rascunhos expiram em 7 dias, são removidos na mesma gravação do registro salvo e não entram no backup (são trabalho em andamento daquele navegador). Formulários de senha e chave de recuperação nunca geram rascunho. | Must |
+| RF-071 | Ao reabrir o app, o sistema DEVE detectar rascunhos pendentes e oferecer "Restaurar" ou "Descartar". A oferta aparece depois do desbloqueio e também dentro do próprio formulário, que não sobrescreve o rascunho antigo enquanto o usuário não escolher. | Must |
+| RF-072 | O sistema DEVE avisar o usuário ao tentar sair/fechar a página com alterações não salvas. Dentro do app, "Sair sem salvar" descarta o rascunho; o bloqueio do cofre (manual ou por inatividade) não pergunta e mantém o rascunho para depois do desbloqueio. | Must |
+| RF-073 | O sistema DEVE funcionar integralmente sem conexão com a internet após o primeiro carregamento (aplicativo instalável/offline — PWA). O service worker guarda só os arquivos do app, nunca dados do usuário. | Should |
 | RF-074 | O sistema DEVE exibir diálogo de confirmação para toda ação significativa (RN-005), descrevendo claramente a consequência. | Must |
 | RF-075 | O sistema DEVE registrar no histórico: tipo de ação, entidade afetada, data/hora e estado anterior. | Must |
 | RF-076 | O sistema DEVE disponibilizar uma tela de "Histórico/Lixeira" para consultar e restaurar itens excluídos, exibindo quantos dias faltam para a exclusão definitiva de cada item. | Must |
 | RF-078 | O sistema DEVE apagar definitivamente itens da lixeira e registros de histórico com mais de **180 dias** (RN-004). Como não há servidor, essa limpeza ocorre ao desbloquear o cofre. | Must |
-| RF-079 | O usuário DEVE poder esvaziar a lixeira manualmente ou excluir um item definitivamente antes do prazo, com confirmação (RN-005). | Should |
-| RF-077 | O sistema DEVERIA oferecer "Desfazer" imediato (ex.: aviso temporário) após exclusões. | Should |
+| RF-079 | O usuário DEVE poder esvaziar a lixeira manualmente ou excluir um item definitivamente antes do prazo, com confirmação (RN-005). Itens da lixeira que dependem do excluído (ex.: transações de uma conta excluída) são apagados junto, e a confirmação os lista. Os registros do histórico com cópias do item também são apagados; fica só um registro "Exclusão definitiva" com a quantidade, sem o conteúdo. | Should |
+| RF-077 | O sistema DEVERIA oferecer "Desfazer" imediato (ex.: aviso temporário) após exclusões. O aviso não tem limite de tempo (WCAG 2.2.1): some ao ser fechado, numa nova exclusão ou ao mudar de tela; depois disso o item continua restaurável pela lixeira. | Should |
 
 ### 5.9 Perfil e Personalização (PRF)
 
@@ -485,7 +485,7 @@ erDiagram
 | **v0.2** | Planejamento | Contas a pagar/receber; calendário; notificações do navegador; recorrências; cartão de crédito e faturas; parcelamentos; cofrinhos; relatórios trimestral/semestral/anual. |
 | **v0.3** | Personalização e portfólio | Dashboard personalizável; temas e acessibilidade avançada; perfil; exportação de relatórios; modo demonstração; publicação em hospedagem estática. |
 | **v0.4** | Inteligência | Projeções; sugestão de categoria; detecção de anomalias; resumos em linguagem natural. |
-| **v0.5+** | Evolução | Câmbio via API e contas em múltiplas moedas (requer ADR revendo RN-011); PWA instalável/offline; lembretes de backup; iCal. |
+| **v0.5+** | Evolução | Câmbio via API e contas em múltiplas moedas (requer ADR revendo RN-011); lembretes de backup. (PWA instalável/offline e iCal foram antecipados para a versão beta.) |
 | **Pós-1.0** | Depois da primeira versão completa | Importação de transações via arquivo CSV/OFX (RF-018); relatórios em período personalizado (RF-054); seletor de período da dashboard (RF-047); reordenar widgets arrastando e soltando (RF-046). |
 
 > **Por que o backup está no MVP:** sem servidor, a exportação é a única proteção contra perda de dados (RN-012, RN-014). Usar o app com dados reais sem backup seria um risco inaceitável.
@@ -592,3 +592,4 @@ Nenhuma no momento. Novas questões devem receber o próximo número (QA-013).
 | 0.10 | 2026-11-08 | Roberto Takada | RF-081: detalhado o comportamento do tema (segue o sistema; escolha cifrada, aplicada após desbloquear). |
 | 0.11 | 2026-11-08 | Roberto Takada | Dashboard implementada (RF-040 a RF-045). Novos RF-046 (arrastar e soltar widgets, Could) e RF-047 (seletor de período da dashboard, Should), ambos para depois da release 1.0. |
 | 0.12 | 2026-11-08 | Roberto Takada | Versão beta: relatórios (RF-050 a RF-053) e perfil e personalização (RF-080 a RF-082, RF-084) implementados. RF-054 adiado para depois da 1.0; RF-083 passa a acompanhar os requisitos de moeda. |
+| 0.13 | 2026-11-09 | Roberto Takada | Seção 5.8 completa: rascunhos cifrados (RF-070 a RF-072), uso offline/PWA (RF-073), "Desfazer" (RF-077) e exclusão definitiva/esvaziar lixeira (RF-079) implementados e detalhados; PWA retirado da release v0.5+. |

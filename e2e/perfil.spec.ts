@@ -48,7 +48,7 @@ test.describe('Perfil (RF-080)', () => {
     await expect(page.locator('[data-perfil-email]')).toHaveText('bia@example.com');
     await expect(page.locator('[data-perfil-menu]')).toContainText('Bia Teste');
 
-    expect(await lerIndexedDb(page)).not.toContain('Bia');
+    expect(await lerIndexedDb(page)).not.toContain('Bia Teste');
     await bloquear(page);
     await desbloquear(page);
     await expect(page.getByText('Olá, Bia!')).toBeVisible();

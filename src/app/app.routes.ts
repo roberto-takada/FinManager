@@ -6,6 +6,7 @@ import {
   exigirDadosCarregados,
   exigirSemCofre,
 } from './core/cofre/cofre.guards';
+import { confirmarSaida } from './features/compartilhado/rascunho-formulario';
 
 /** Telas com dados financeiros: cofre desbloqueado e dados decifrados. */
 const comDados = [exigirCofreDesbloqueado, exigirDadosCarregados];
@@ -43,6 +44,7 @@ export const routes: Routes = [
     path: 'perfil/editar',
     title: titulo('Editar perfil'),
     canActivate: comDados,
+    canDeactivate: [confirmarSaida],
     loadComponent: () => import('./features/perfil/editar-perfil').then((m) => m.EditarPerfil),
   },
   {
@@ -56,6 +58,7 @@ export const routes: Routes = [
     path: 'transacoes/nova',
     title: titulo('Nova transação'),
     canActivate: comDados,
+    canDeactivate: [confirmarSaida],
     loadComponent: () =>
       import('./features/transacoes/formulario-transacao').then((m) => m.FormularioTransacao),
   },
@@ -63,6 +66,7 @@ export const routes: Routes = [
     path: 'transacoes/:id',
     title: titulo('Editar transação'),
     canActivate: comDados,
+    canDeactivate: [confirmarSaida],
     loadComponent: () =>
       import('./features/transacoes/formulario-transacao').then((m) => m.FormularioTransacao),
   },
@@ -76,6 +80,7 @@ export const routes: Routes = [
     path: 'contas/nova',
     title: titulo('Nova conta'),
     canActivate: comDados,
+    canDeactivate: [confirmarSaida],
     loadComponent: () =>
       import('./features/contas/formulario-conta').then((m) => m.FormularioConta),
   },
@@ -83,6 +88,7 @@ export const routes: Routes = [
     path: 'contas/:id/editar',
     title: titulo('Editar conta'),
     canActivate: comDados,
+    canDeactivate: [confirmarSaida],
     loadComponent: () =>
       import('./features/contas/formulario-conta').then((m) => m.FormularioConta),
   },
@@ -96,6 +102,7 @@ export const routes: Routes = [
     path: 'categorias/nova',
     title: titulo('Nova categoria'),
     canActivate: comDados,
+    canDeactivate: [confirmarSaida],
     loadComponent: () =>
       import('./features/categorias/formulario-categoria').then((m) => m.FormularioCategoria),
   },
@@ -103,6 +110,7 @@ export const routes: Routes = [
     path: 'categorias/:id/editar',
     title: titulo('Editar categoria'),
     canActivate: comDados,
+    canDeactivate: [confirmarSaida],
     loadComponent: () =>
       import('./features/categorias/formulario-categoria').then((m) => m.FormularioCategoria),
   },
@@ -123,6 +131,7 @@ export const routes: Routes = [
     path: 'agenda/nova',
     title: titulo('Nova conta a pagar ou a receber'),
     canActivate: comDados,
+    canDeactivate: [confirmarSaida],
     loadComponent: () =>
       import('./features/agenda/formulario-conta-agendada').then((m) => m.FormularioContaAgendada),
   },
@@ -130,6 +139,7 @@ export const routes: Routes = [
     path: 'agenda/:id/editar',
     title: titulo('Editar conta a pagar ou a receber'),
     canActivate: comDados,
+    canDeactivate: [confirmarSaida],
     loadComponent: () =>
       import('./features/agenda/formulario-conta-agendada').then((m) => m.FormularioContaAgendada),
   },
@@ -150,6 +160,7 @@ export const routes: Routes = [
     path: 'cofrinhos/novo',
     title: titulo('Novo cofrinho'),
     canActivate: comDados,
+    canDeactivate: [confirmarSaida],
     loadComponent: () =>
       import('./features/cofrinhos/formulario-cofrinho').then((m) => m.NovoCofrinho),
   },
@@ -164,6 +175,7 @@ export const routes: Routes = [
     path: 'cofrinhos/:id/configuracoes',
     title: titulo('Configurações do cofrinho'),
     canActivate: comDados,
+    canDeactivate: [confirmarSaida],
     loadComponent: () =>
       import('./features/cofrinhos/configuracoes-cofrinho').then((m) => m.ConfiguracoesCofrinho),
   },
@@ -171,6 +183,7 @@ export const routes: Routes = [
     path: 'cofrinhos/:id/movimentar',
     title: titulo('Depositar ou retirar'),
     canActivate: comDados,
+    canDeactivate: [confirmarSaida],
     loadComponent: () =>
       import('./features/cofrinhos/movimentar-cofrinho').then((m) => m.MovimentarCofrinho),
   },

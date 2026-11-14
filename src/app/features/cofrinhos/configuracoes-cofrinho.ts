@@ -17,6 +17,9 @@ import { formatarDinheiro, lerDinheiro, paraTextoEditavel } from '../../domain/s
 import { DialogoConfirmacao } from '../../ui/dialogo-confirmacao/dialogo-confirmacao';
 import { mensagemDeErro } from '../cofre/compartilhado/mensagens';
 import { AvisoNavegacao } from '../compartilhado/aviso-navegacao';
+import { AvisoRascunho } from '../compartilhado/aviso-rascunho';
+import { rascunhoDoFormulario } from '../compartilhado/rascunho-formulario';
+import { DesfazerExclusao } from '../compartilhado/aviso-desfazer';
 import { CamposCofrinho, criarFormCofrinho } from './formulario-cofrinho';
 
 type Acao = 'zerar' | 'encerrar' | 'excluir';
@@ -27,7 +30,7 @@ type Acao = 'zerar' | 'encerrar' | 'excluir';
  */
 @Component({
   selector: 'app-configuracoes-cofrinho',
-  imports: [ReactiveFormsModule, RouterLink, DialogoConfirmacao, CamposCofrinho],
+  imports: [ReactiveFormsModule, RouterLink, DialogoConfirmacao, CamposCofrinho, AvisoRascunho],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="max-w-2xl space-y-6">
@@ -53,6 +56,7 @@ type Acao = 'zerar' | 'encerrar' | 'excluir';
           aria-labelledby="titulo-editar"
         >
           <h2 id="titulo-editar" class="text-lg font-semibold">Editar cofrinho</h2>
+          <app-aviso-rascunho [rascunho]="rascunho" />
           <app-campos-cofrinho [form]="form" [mostrarErros]="tentou()" />
           <button type="submit" class="botao-primario" [disabled]="processando()">
             Salvar alterações
@@ -133,6 +137,9 @@ export class ConfiguracoesCofrinho implements OnInit {
   };
 
   protected readonly form = criarFormCofrinho(inject(NonNullableFormBuilder));
+  /** RF-070 a RF-072: rascunho automático e aviso ao sair sem salvar. */
+  readonly rascunho = rascunhoDoFormulario(this.form);
+  private readonly desfazer = inject(DesfazerExclusao);
   protected readonly tentou = signal(false);
   protected readonly processando = signal(false);
   protected readonly contaDestino = signal('');
@@ -169,6 +176,10 @@ export class ConfiguracoesCofrinho implements OnInit {
       icone: c.icone,
       cor: c.cor,
     });
+    this.rascunho.iniciar({
+      chave: `cofrinho:editar:${c.id}`,
+      titulo: `Editar cofrinho "${c.nome}"`,
+    });
   }
 
   protected async salvar(): Promise<void> {
@@ -179,13 +190,15 @@ export class ConfiguracoesCofrinho implements OnInit {
     if (this.form.invalid || !meta) return;
     await this.executar(
       () =>
-        this.cofrinhos.editar(this.id(), {
-          nome: v.nome,
-          meta,
-          prazo: v.prazo || null,
-          icone: v.icone,
-          cor: v.cor,
-        }),
+        this.rascunho.concluir(() =>
+          this.cofrinhos.editar(this.id(), {
+            nome: v.nome,
+            meta,
+            prazo: v.prazo || null,
+            icone: v.icone,
+            cor: v.cor,
+          }),
+        ),
       'Cofrinho atualizado.',
       ['/cofrinhos', this.id()],
     );
@@ -210,30 +223,34 @@ export class ConfiguracoesCofrinho implements OnInit {
         '/cofrinhos',
         this.id(),
       ]);
+    // Encerrado ou excluído, o cofrinho não pode mais ser editado: o rascunho perde o sentido.
     if (acao === 'encerrar')
       await this.executar(
-        () => this.cofrinhos.encerrar(this.id(), destino),
+        () => this.cofrinhos.encerrar(this.id(), destino).then(() => this.rascunho.abandonar()),
         'Cofrinho encerrado.',
         ['/cofrinhos', this.id()],
       );
     if (acao === 'excluir')
       await this.executar(
-        () => this.cofrinhos.excluir(this.id()),
-        'Cofrinho excluído. Ele está na lixeira.',
+        () => this.cofrinhos.excluir(this.id()).then(() => this.rascunho.abandonar()),
+        null,
         ['/cofrinhos'],
       );
   }
 
   private async executar(
     acao: () => Promise<unknown>,
-    sucesso: string,
+    /** `null`: exclusão, que oferece "Desfazer" em vez de um aviso (RF-077). */
+    sucesso: string | null,
     destino: string[],
   ): Promise<void> {
     this.processando.set(true);
     try {
+      const nome = this.cofrinho()?.nome ?? '';
       await acao();
-      this.aviso.definir(sucesso);
+      if (sucesso) this.aviso.definir(sucesso);
       await this.router.navigate(destino);
+      if (!sucesso) this.desfazer.oferecer(`Cofrinho "${nome}" excluído e enviado à lixeira.`);
     } catch (e) {
       this.mensagem.set(mensagemDeErro(e));
     } finally {

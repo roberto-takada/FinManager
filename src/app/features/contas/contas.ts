@@ -5,6 +5,7 @@ import { type ContaFinanceira, TIPOS_CONTA } from '../../domain/contas/conta';
 import { formatarDinheiro } from '../../domain/shared/dinheiro';
 import { DialogoConfirmacao } from '../../ui/dialogo-confirmacao/dialogo-confirmacao';
 import { mensagemDeErro } from '../cofre/compartilhado/mensagens';
+import { DesfazerExclusao } from '../compartilhado/aviso-desfazer';
 import { AvisoNavegacao } from '../compartilhado/aviso-navegacao';
 
 /** Contas financeiras e saldos (RF-016). Criar e editar ficam em páginas próprias. */
@@ -97,6 +98,7 @@ export class Contas {
   protected readonly contas = inject(ContasService);
   protected readonly tipos = TIPOS_CONTA;
   protected readonly alvo = signal<ContaFinanceira | null>(null);
+  private readonly desfazer = inject(DesfazerExclusao);
   protected readonly mensagem = signal<string | null>(inject(AvisoNavegacao).consumir());
   protected readonly erro = signal(false);
   protected readonly mensagemExclusao = computed(() =>
@@ -113,8 +115,8 @@ export class Contas {
     if (!conta) return;
     try {
       await this.contas.excluir(conta.id);
-      this.erro.set(false);
-      this.mensagem.set('Conta excluída. Ela está na lixeira.');
+      this.mensagem.set(null);
+      this.desfazer.oferecer(`Conta "${conta.nome}" excluída e enviada à lixeira.`);
     } catch (e) {
       this.erro.set(true);
       this.mensagem.set(mensagemDeErro(e));

@@ -10,6 +10,12 @@ export const VERSAO_FORMATO_BACKUP = 1;
 export const VERSAO_DADOS_BACKUP = 1;
 
 /**
+ * Coleções exportadas. Rascunhos ficam de fora: são trabalho em andamento deste navegador,
+ * não dados a transferir para outro (RF-070).
+ */
+export const COLECOES_BACKUP = COLECOES.filter((c) => c !== 'rascunhos');
+
+/**
  * Arquivo de backup (ENGENHARIA_DE_SOFTWARE §5.7). O cabeçalho só tem o necessário para
  * decifrar; nada sobre os dados (nem quantidade de registros). As duas cópias da DEK são
  * as do cofre, então o arquivo abre com a senha mestra vigente na exportação ou com a
@@ -39,7 +45,7 @@ export class BackupService {
     const colecoes = this.dados.colecoes();
     const conteudo = JSON.stringify({
       versao: VERSAO_DADOS_BACKUP,
-      colecoes: Object.fromEntries(COLECOES.map((c) => [c, colecoes[c]])),
+      colecoes: Object.fromEntries(COLECOES_BACKUP.map((c) => [c, colecoes[c]])),
     });
     const cifrado = await this.cifrador.cifrar(this.cofre.chaveDeDados(), conteudo);
     const agora = this.dados.agora();

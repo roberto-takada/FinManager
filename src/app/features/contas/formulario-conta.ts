@@ -14,12 +14,14 @@ import { type ContaFinanceira, type TipoConta, TIPOS_CONTA } from '../../domain/
 import { lerDinheiro, paraTextoEditavel, zero } from '../../domain/shared/dinheiro';
 import { mensagemDeErro } from '../cofre/compartilhado/mensagens';
 import { AvisoNavegacao } from '../compartilhado/aviso-navegacao';
+import { AvisoRascunho } from '../compartilhado/aviso-rascunho';
+import { rascunhoDoFormulario } from '../compartilhado/rascunho-formulario';
 import { valorMonetario } from '../compartilhado/validadores-financeiros';
 
 /** Página de criação (`/contas/nova`) e edição (`/contas/:id/editar`) de conta (RF-016). */
 @Component({
   selector: 'app-formulario-conta',
-  imports: [ReactiveFormsModule, RouterLink],
+  imports: [ReactiveFormsModule, RouterLink, AvisoRascunho],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="max-w-2xl space-y-6">
@@ -34,6 +36,7 @@ import { valorMonetario } from '../compartilhado/validadores-financeiros';
         <p class="alerta-erro" role="alert">Conta não encontrada.</p>
       } @else {
         <form class="space-y-4 cartao" [formGroup]="form" (ngSubmit)="salvar()" novalidate>
+          <app-aviso-rascunho [rascunho]="rascunho" />
           <div>
             <label class="rotulo" for="conta-nome">Nome da conta</label>
             <input
@@ -100,6 +103,8 @@ export class FormularioConta implements OnInit {
     tipo: ['corrente' as TipoConta],
     saldoInicial: ['0,00', [valorMonetario({ permitirNegativoOuZero: true })]],
   });
+  /** RF-070 a RF-072: rascunho automático e aviso ao sair sem salvar. */
+  readonly rascunho = rascunhoDoFormulario(this.form);
   protected readonly original = signal<ContaFinanceira | null>(null);
   protected readonly tentou = signal(false);
   protected readonly salvando = signal(false);
@@ -107,7 +112,10 @@ export class FormularioConta implements OnInit {
 
   ngOnInit(): void {
     const id = this.id();
-    if (!id) return;
+    if (!id) {
+      this.rascunho.iniciar({ chave: 'conta:nova', titulo: 'Nova conta' });
+      return;
+    }
     const conta = this.dados.contas().find((c) => c.id === id && c.excluidoEm === null);
     if (!conta) return;
     this.original.set(conta);
@@ -116,6 +124,7 @@ export class FormularioConta implements OnInit {
       tipo: conta.tipo,
       saldoInicial: paraTextoEditavel(conta.saldoInicial),
     });
+    this.rascunho.iniciar({ chave: `conta:editar:${id}`, titulo: `Editar conta "${conta.nome}"` });
   }
 
   protected async salvar(): Promise<void> {
@@ -132,8 +141,9 @@ export class FormularioConta implements OnInit {
     try {
       const dados = { nome: v.nome, tipo: v.tipo, saldoInicial };
       const original = this.original();
-      if (original) await this.contas.editar(original.id, dados);
-      else await this.contas.criar(dados);
+      await this.rascunho.concluir(() =>
+        original ? this.contas.editar(original.id, dados) : this.contas.criar(dados),
+      );
       this.aviso.definir(original ? 'Conta salva.' : 'Conta adicionada.');
       await this.router.navigateByUrl('/contas');
     } catch (e) {

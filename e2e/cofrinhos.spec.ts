@@ -85,7 +85,8 @@ test.describe('Cofrinhos (RF-030 a RF-033, US-005)', () => {
     await page.getByRole('button', { name: 'Criar cofrinho' }).click();
     await expect(page.getByText('Informe uma meta maior que zero.')).toBeVisible();
 
-    await criarCofrinho(page, 'Carro', '20.000,00');
+    await page.getByLabel('Meta (R$)').fill('20.000,00');
+    await page.getByRole('button', { name: 'Criar cofrinho' }).click();
     await expect(
       page.locator('[data-cofrinho]', { hasText: 'Carro' }).locator('[data-planejamento]'),
     ).toHaveText('Sem prazo definido.');

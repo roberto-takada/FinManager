@@ -450,3 +450,8 @@
 @utility botao-acao-perigo {
   @apply inline-flex min-h-9 cursor-pointer items-center justify-center rounded-md bg-negative-soft px-3 text-sm font-semibold text-negative foco hover:brightness-95;
 }
+
+/* Aviso de "Desfazer" (RF-077) fixo no rodapé: o foco nunca fica escondido atrás dele (WCAG 2.4.11). */
+html:has([data-aviso-desfazer]) {
+  scroll-padding-bottom: 8rem;
+}

@@ -12,6 +12,7 @@ import { formatarDinheiro } from '../../domain/shared/dinheiro';
 import { TIPOS_TRANSACAO } from '../../domain/transacoes/transacao';
 import { DialogoConfirmacao } from '../../ui/dialogo-confirmacao/dialogo-confirmacao';
 import { mensagemDeErro } from '../cofre/compartilhado/mensagens';
+import { DesfazerExclusao } from '../compartilhado/aviso-desfazer';
 
 /** Transações recorrentes (RF-012). A criação é feita em "Nova transação". */
 @Component({
@@ -97,6 +98,7 @@ export class Recorrencias {
   protected readonly tipos = TIPOS_TRANSACAO;
   protected readonly formatar = formatarDinheiro;
   protected readonly alvo = signal<Recorrencia | null>(null);
+  private readonly desfazer = inject(DesfazerExclusao);
   protected readonly mensagem = signal<string | null>(null);
   protected readonly mensagemExclusao = computed(() =>
     this.alvo()
@@ -115,6 +117,10 @@ export class Recorrencias {
     if (!r) return;
     try {
       await this.recorrencias.excluir(r.id);
+      this.mensagem.set(null);
+      this.desfazer.oferecer(
+        `Recorrência "${r.modelo.descricao || 'sem descrição'}" excluída e enviada à lixeira.`,
+      );
     } catch (e) {
       this.mensagem.set(mensagemDeErro(e));
     }

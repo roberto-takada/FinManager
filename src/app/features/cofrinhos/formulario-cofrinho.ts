@@ -1,4 +1,11 @@
-import { ChangeDetectionStrategy, Component, inject, input, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  inject,
+  input,
+  type OnInit,
+  signal,
+} from '@angular/core';
 import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { CofrinhosService } from '../../application/cofrinhos/cofrinhos.service';
@@ -6,6 +13,8 @@ import type { CorCofrinho, IconeCofrinho } from '../../domain/cofrinhos/cofrinho
 import { lerDinheiro } from '../../domain/shared/dinheiro';
 import { mensagemDeErro } from '../cofre/compartilhado/mensagens';
 import { AvisoNavegacao } from '../compartilhado/aviso-navegacao';
+import { AvisoRascunho } from '../compartilhado/aviso-rascunho';
+import { rascunhoDoFormulario } from '../compartilhado/rascunho-formulario';
 import { mensagemValor, valorMonetario } from '../compartilhado/validadores-financeiros';
 import { LISTA_CORES, LISTA_ICONES } from './textos-cofrinho';
 
@@ -105,7 +114,7 @@ export class CamposCofrinho {
 /** Página de criação de cofrinho (`/cofrinhos/novo`, RF-030). */
 @Component({
   selector: 'app-novo-cofrinho',
-  imports: [ReactiveFormsModule, RouterLink, CamposCofrinho],
+  imports: [ReactiveFormsModule, RouterLink, CamposCofrinho, AvisoRascunho],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="max-w-2xl space-y-6">
@@ -114,6 +123,7 @@ export class CamposCofrinho {
       >
       <h1 tabindex="-1" class="text-3xl font-bold">Novo cofrinho</h1>
       <form class="space-y-4 cartao" [formGroup]="form" (ngSubmit)="criar()" novalidate>
+        <app-aviso-rascunho [rascunho]="rascunho" />
         <app-campos-cofrinho [form]="form" [mostrarErros]="tentou()" />
         @if (erro(); as m) {
           <p class="alerta-erro" role="alert">{{ m }}</p>
@@ -128,15 +138,21 @@ export class CamposCofrinho {
     </div>
   `,
 })
-export class NovoCofrinho {
+export class NovoCofrinho implements OnInit {
   private readonly cofrinhos = inject(CofrinhosService);
   private readonly router = inject(Router);
   private readonly aviso = inject(AvisoNavegacao);
 
   protected readonly form = criarFormCofrinho(inject(NonNullableFormBuilder));
+  /** RF-070 a RF-072: rascunho automático e aviso ao sair sem salvar. */
+  readonly rascunho = rascunhoDoFormulario(this.form);
   protected readonly tentou = signal(false);
   protected readonly salvando = signal(false);
   protected readonly erro = signal<string | null>(null);
+
+  ngOnInit(): void {
+    this.rascunho.iniciar({ chave: 'cofrinho:novo', titulo: 'Novo cofrinho' });
+  }
 
   protected async criar(): Promise<void> {
     this.tentou.set(true);
@@ -146,13 +162,15 @@ export class NovoCofrinho {
     if (this.form.invalid || !meta) return;
     this.salvando.set(true);
     try {
-      const c = await this.cofrinhos.criar({
-        nome: v.nome,
-        meta,
-        prazo: v.prazo || null,
-        icone: v.icone,
-        cor: v.cor,
-      });
+      const c = await this.rascunho.concluir(() =>
+        this.cofrinhos.criar({
+          nome: v.nome,
+          meta,
+          prazo: v.prazo || null,
+          icone: v.icone,
+          cor: v.cor,
+        }),
+      );
       this.aviso.definir(`Cofrinho "${c.nome}" criado.`);
       await this.router.navigateByUrl('/cofrinhos');
     } catch (e) {

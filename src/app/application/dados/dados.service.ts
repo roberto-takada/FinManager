@@ -4,6 +4,7 @@ import type { ContaAgendada } from '../../domain/agenda/conta-agendada';
 import type { Cofrinho } from '../../domain/cofrinhos/cofrinho';
 import type { ContaFinanceira } from '../../domain/contas/conta';
 import type { Perfil } from '../../domain/perfil/perfil';
+import { expurgarRascunhos, type Rascunho } from '../../domain/rascunhos/rascunho';
 import { type Preferencias, PREFERENCIAS_PADRAO } from '../../domain/shared/preferencias';
 import {
   criarEvento,
@@ -39,6 +40,8 @@ export interface Colecoes {
   readonly preferencias: readonly Preferencias[];
   /** No máximo um item (RF-080). */
   readonly perfil: readonly Perfil[];
+  /** Formulários em edição ainda não salvos (RF-070); expiram em 7 dias. */
+  readonly rascunhos: readonly Rascunho[];
 }
 
 export type EstadoDados = 'bloqueado' | 'carregando' | 'pronto' | 'erro';
@@ -53,6 +56,7 @@ const VAZIO: Colecoes = {
   cofrinhos: [],
   preferencias: [],
   perfil: [],
+  rascunhos: [],
 };
 
 /**
@@ -86,11 +90,14 @@ export class DadosService {
   readonly preferencias = computed(() => this._colecoes().preferencias[0] ?? PREFERENCIAS_PADRAO);
   /** Perfil (RF-080); `null` enquanto o usuário não preencheu nada. */
   readonly perfil = computed(() => this._colecoes().perfil[0] ?? null);
+  readonly rascunhos = computed(() => this._colecoes().rascunhos);
 
   private carregamento: Promise<void> | null = null;
   private fila: Promise<unknown> = Promise.resolve();
   /** Muda a cada bloqueio, para descartar carregamentos e gravações de uma sessão anterior. */
   private sessao = 0;
+  /** Rascunho a remover na mesma gravação da próxima alteração (ver `concluirRascunho`). */
+  private rascunhoAConcluir: string | null = null;
 
   constructor() {
     effect(() => {
@@ -133,6 +140,7 @@ export class DadosService {
     calcular: (atual: Colecoes) => { mudancas: Partial<Colecoes>; resultado: R },
   ): Promise<R> {
     const sessao = this.sessao;
+    const rascunho = this.rascunhoAConcluir;
     const execucao = this.fila.then(async () => {
       if (sessao !== this.sessao || this._estado() !== 'pronto') {
         throw new ErroDominio(
@@ -140,13 +148,48 @@ export class DadosService {
           'O cofre foi bloqueado. Desbloqueie e tente de novo.',
         );
       }
-      const { mudancas, resultado } = calcular(this._colecoes());
+      const atual = this._colecoes();
+      const calculado = calcular(atual);
+      const resultado = calculado.resultado;
+      let mudancas = calculado.mudancas;
+      const rascunhos = mudancas.rascunhos ?? atual.rascunhos;
+      if (rascunho !== null && rascunhos.some((r) => r.id === rascunho)) {
+        mudancas = { ...mudancas, rascunhos: rascunhos.filter((r) => r.id !== rascunho) };
+      }
       await this.gravar(mudancas);
       if (sessao === this.sessao) this._colecoes.update((atual) => ({ ...atual, ...mudancas }));
       return resultado;
     });
     this.fila = execucao.catch(() => undefined);
     return execucao;
+  }
+
+  /**
+   * Executa `acao` (que salva o formulário) removendo o rascunho `chave` **na mesma
+   * gravação** do registro definitivo (ENGENHARIA_DE_SOFTWARE §5.2, RNF-013): se a aba
+   * fechar no meio, ou ficam os dois antigos, ou os dois novos, nunca um registro salvo
+   * com o rascunho ainda oferecido para restauração.
+   *
+   * Vale para a primeira chamada a `alterar` feita de forma síncrona por `acao`. Se a ação
+   * não chamar `alterar` logo de início, o rascunho é removido logo depois, numa segunda
+   * gravação.
+   */
+  async concluirRascunho<R>(chave: string, acao: () => Promise<R>): Promise<R> {
+    let promessa: Promise<R>;
+    this.rascunhoAConcluir = chave;
+    try {
+      promessa = acao();
+    } finally {
+      this.rascunhoAConcluir = null;
+    }
+    const resultado = await promessa;
+    if (this._colecoes().rascunhos.some((r) => r.id === chave)) {
+      await this.alterar((atual) => ({
+        mudancas: { rascunhos: atual.rascunhos.filter((r) => r.id !== chave) },
+        resultado: undefined,
+      }));
+    }
+    return resultado;
   }
 
   /** Cria um evento de histórico (RN-004, RF-075) com data/hora e expiração. */
@@ -205,6 +248,7 @@ export class DadosService {
         cofrinhos,
         preferencias,
         perfil,
+        rascunhos,
       ] = lidas;
 
       let colecoes: Colecoes = {
@@ -217,6 +261,7 @@ export class DadosService {
         cofrinhos: (cofrinhos ?? []) as Cofrinho[],
         preferencias: (preferencias ?? []) as Preferencias[],
         perfil: (perfil ?? []) as Perfil[],
+        rascunhos: (rascunhos ?? []) as Rascunho[],
       };
       const mudancas: Partial<Record<Colecao, readonly unknown[]>> = {};
 
@@ -254,6 +299,13 @@ export class DadosService {
       if (eventos.length !== colecoes.historico.length) {
         colecoes = { ...colecoes, historico: eventos };
         mudancas.historico = eventos;
+      }
+
+      // Rascunhos esquecidos há mais de 7 dias (ENGENHARIA_DE_SOFTWARE §5.2).
+      const rascunhosValidos = expurgarRascunhos(colecoes.rascunhos, agora);
+      if (rascunhosValidos.length !== colecoes.rascunhos.length) {
+        colecoes = { ...colecoes, rascunhos: rascunhosValidos };
+        mudancas.rascunhos = rascunhosValidos;
       }
 
       // RF-012: ocorrências das recorrências até hoje.

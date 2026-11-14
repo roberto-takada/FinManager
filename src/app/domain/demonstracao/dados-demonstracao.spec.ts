@@ -3,6 +3,7 @@ import { planejamento, progresso, saldoCofrinho } from '../cofrinhos/cofrinho';
 import { validarPerfil } from '../perfil/perfil';
 import { lerPeriodo } from '../relatorios/periodo';
 import { gerarRelatorio } from '../relatorios/relatorio';
+import { diasAteExclusaoDefinitiva } from '../historico/historico';
 import { ativos } from '../shared/entidade';
 import { totalizar } from '../transacoes/transacao';
 import { gerarDadosDemonstracao } from './dados-demonstracao';
@@ -138,5 +139,43 @@ describe('dados de demonstração (RNF-061)', () => {
     }
     const t3 = gerarRelatorio(dados, lerPeriodo('trimestral', '2026-T3')!, '2026-11-08');
     expect(t3.cofrinhos.length).toBeGreaterThan(0);
+  });
+
+  describe('lixeira e histórico (RF-075 a RF-079)', () => {
+    const agora = new Date('2026-11-08T12:00:00.000Z');
+    const naLixeira = [...dados.transacoes, ...dados.contasAgendadas].filter(
+      (e) => e.excluidoEm !== null,
+    );
+
+    it('tem itens na lixeira, um deles perto da exclusão definitiva', () => {
+      expect(naLixeira.length).toBe(3);
+      const dias = naLixeira.map((e) => diasAteExclusaoDefinitiva(e.excluidoEm!, agora));
+      expect(Math.min(...dias)).toBe(5);
+      expect(dias.every((d) => d > 0)).toBe(true);
+    });
+
+    it('cada item da lixeira tem o evento de exclusão com o estado anterior', () => {
+      for (const item of naLixeira) {
+        const evento = dados.historico.find(
+          (e) => e.entidadeId === item.id && e.acao === 'exclusao',
+        );
+        expect(evento?.estadoAnterior).toMatchObject({ id: item.id, excluidoEm: null });
+        expect(evento?.ocorridoEm).toBe(item.excluidoEm);
+      }
+    });
+
+    it('inclui uma edição de valor e uma exclusão desfeita, em ordem cronológica', () => {
+      const acoes = dados.historico.map((e) => e.acao);
+      expect(acoes).toContain('edicao');
+      expect(acoes).toContain('restauracao');
+      const datas = dados.historico.map((e) => e.ocorridoEm);
+      expect(datas).toEqual([...datas].sort());
+      expect(dados.historico.every((e) => e.ocorridoEm < agora.toISOString())).toBe(true);
+    });
+
+    it('itens da lixeira não entram nos totais', () => {
+      const ativas = ativos(dados.transacoes);
+      expect(ativas.some((t) => t.descricao.includes('lançado em dobro'))).toBe(false);
+    });
   });
 });

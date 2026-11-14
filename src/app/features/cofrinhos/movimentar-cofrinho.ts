@@ -17,12 +17,14 @@ import { emAndamento, progresso, type TipoMovimentacao } from '../../domain/cofr
 import { formatarDinheiro, lerDinheiro } from '../../domain/shared/dinheiro';
 import { mensagemDeErro } from '../cofre/compartilhado/mensagens';
 import { AvisoNavegacao } from '../compartilhado/aviso-navegacao';
+import { AvisoRascunho } from '../compartilhado/aviso-rascunho';
+import { rascunhoDoFormulario } from '../compartilhado/rascunho-formulario';
 import { mensagemValor, valorMonetario } from '../compartilhado/validadores-financeiros';
 
 /** Página para depositar ou retirar (`/cofrinhos/:id/movimentar?tipo=...`, RF-031). */
 @Component({
   selector: 'app-movimentar-cofrinho',
-  imports: [ReactiveFormsModule, RouterLink],
+  imports: [ReactiveFormsModule, RouterLink, AvisoRascunho],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="max-w-2xl space-y-6">
@@ -38,6 +40,7 @@ import { mensagemValor, valorMonetario } from '../compartilhado/validadores-fina
         </div>
 
         <form class="space-y-4 cartao" [formGroup]="form" (ngSubmit)="registrar()" novalidate>
+          <app-aviso-rascunho [rascunho]="rascunho" />
           <fieldset>
             <legend class="rotulo">Operação</legend>
             <div class="mt-1 flex gap-4">
@@ -123,6 +126,8 @@ export class MovimentarCofrinho implements OnInit {
   protected readonly tipoAtual = toSignal(this.form.controls.tipo.valueChanges, {
     initialValue: 'deposito' as TipoMovimentacao,
   });
+  /** RF-070 a RF-072: rascunho automático e aviso ao sair sem salvar. */
+  readonly rascunho = rascunhoDoFormulario(this.form);
   protected readonly tentou = signal(false);
   protected readonly salvando = signal(false);
   protected readonly erro = signal<string | null>(null);
@@ -138,6 +143,13 @@ export class MovimentarCofrinho implements OnInit {
 
   ngOnInit(): void {
     if (this.tipo() === 'retirada') this.form.controls.tipo.setValue('retirada');
+    const c = this.cofrinho();
+    if (c) {
+      this.rascunho.iniciar({
+        chave: `cofrinho:movimentar:${c.id}`,
+        titulo: `Depositar ou retirar: ${c.nome}`,
+      });
+    }
   }
 
   protected async registrar(): Promise<void> {
@@ -149,8 +161,11 @@ export class MovimentarCofrinho implements OnInit {
     this.salvando.set(true);
     try {
       const mov = { valor, data: v.data, contaId: v.contaId };
-      if (v.tipo === 'deposito') await this.cofrinhos.depositar(this.id(), mov);
-      else await this.cofrinhos.retirar(this.id(), mov);
+      await this.rascunho.concluir(() =>
+        v.tipo === 'deposito'
+          ? this.cofrinhos.depositar(this.id(), mov)
+          : this.cofrinhos.retirar(this.id(), mov),
+      );
       this.aviso.definir(v.tipo === 'deposito' ? 'Depósito registrado.' : 'Retirada registrada.');
       await this.router.navigate(['/cofrinhos', this.id()]);
     } catch (e) {

@@ -15,7 +15,7 @@ import type { Dinheiro } from '../../domain/shared/dinheiro';
 import { ErroDominio } from '../../domain/shared/erro-dominio';
 import { buscarAtivo, marcarExcluido, substituir } from '../dados/colecoes';
 import { type Colecoes, DadosService } from '../dados/dados.service';
-import { resumoCofrinho } from '../historico/resumos';
+import { resumoCofrinho } from '../../domain/historico/resumos';
 
 export interface DadosMovimentacao {
   readonly valor: Dinheiro;

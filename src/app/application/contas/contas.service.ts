@@ -7,7 +7,7 @@ import { ErroDominio } from '../../domain/shared/erro-dominio';
 import { calcularSaldos } from '../../domain/transacoes/transacao';
 import { buscarAtivo, marcarExcluido, substituir } from '../dados/colecoes';
 import { DadosService } from '../dados/dados.service';
-import { resumoConta } from '../historico/resumos';
+import { resumoConta } from '../../domain/historico/resumos';
 
 /** Contas financeiras (RF-016). */
 @Injectable({ providedIn: 'root' })

@@ -108,9 +108,12 @@
           de novo. Nenhum dado foi alterado.
         </p>
       }
+      <app-rascunhos-pendentes />
       <router-outlet />
     </main>
   </div>
+  <app-aviso-desfazer />
+  <app-dialogo-saida />
 } @else {
   <!-- Telas do cofre (criar, desbloquear, recuperar, apagar): layout centrado e simples. -->
   <header class="print:hidden">

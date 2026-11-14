@@ -23,6 +23,7 @@ import { formatarData } from '../../domain/shared/data';
 import { formatarDinheiro, lerDinheiro, paraTextoEditavel } from '../../domain/shared/dinheiro';
 import {
   type DadosTransacao,
+  descricaoExibida,
   ehAlteracaoSignificativa,
   MAXIMO_PARCELAS,
   TAMANHO_MAXIMO_DESCRICAO,
@@ -32,6 +33,8 @@ import {
 } from '../../domain/transacoes/transacao';
 import { DialogoConfirmacao } from '../../ui/dialogo-confirmacao/dialogo-confirmacao';
 import { mensagemDeErro } from '../cofre/compartilhado/mensagens';
+import { AvisoRascunho } from '../compartilhado/aviso-rascunho';
+import { rascunhoDoFormulario } from '../compartilhado/rascunho-formulario';
 import { mensagemValor, valorMonetario } from '../compartilhado/validadores-financeiros';
 
 type Repeticao = 'unica' | 'parcelada' | 'recorrente';
@@ -42,7 +45,7 @@ type Repeticao = 'unica' | 'parcelada' | 'recorrente';
  */
 @Component({
   selector: 'app-formulario-transacao',
-  imports: [ReactiveFormsModule, RouterLink, DialogoConfirmacao],
+  imports: [ReactiveFormsModule, RouterLink, DialogoConfirmacao, AvisoRascunho],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="space-y-6">
@@ -67,6 +70,7 @@ type Repeticao = 'unica' | 'parcelada' | 'recorrente';
         }
 
         <form class="space-y-5 cartao" [formGroup]="form" (ngSubmit)="enviar()" novalidate>
+          <app-aviso-rascunho [rascunho]="rascunho" />
           <fieldset>
             <legend class="rotulo">Tipo</legend>
             <div class="mt-1 flex flex-wrap gap-4">
@@ -298,6 +302,9 @@ export class FormularioTransacao implements OnInit {
     fim: [''],
   });
 
+  /** RF-070 a RF-072: rascunho automático e aviso ao sair sem salvar. */
+  readonly rascunho = rascunhoDoFormulario(this.form);
+
   protected readonly tipo = toSignal(this.form.controls.tipo.valueChanges, {
     initialValue: 'despesa' as TipoTransacao,
   });
@@ -328,7 +335,10 @@ export class FormularioTransacao implements OnInit {
 
   ngOnInit(): void {
     const id = this.id();
-    if (!id) return;
+    if (!id) {
+      this.rascunho.iniciar({ chave: 'transacao:nova', titulo: 'Nova transação' });
+      return;
+    }
     const transacao = this.transacoes.buscar(id);
     if (!transacao) {
       this.erro.set('Transação não encontrada.');
@@ -343,6 +353,10 @@ export class FormularioTransacao implements OnInit {
       categoriaId: transacao.categoriaId ?? '',
       contaId: transacao.contaId,
       contaDestinoId: transacao.contaDestinoId ?? '',
+    });
+    this.rascunho.iniciar({
+      chave: `transacao:editar:${id}`,
+      titulo: `Editar transação "${descricaoExibida(transacao)}"`,
     });
   }
 
@@ -396,19 +410,21 @@ export class FormularioTransacao implements OnInit {
     this.salvando.set(true);
     try {
       const original = this.original();
-      if (original) {
-        await this.transacoes.editar(original.id, dados);
-      } else {
-        const v = this.form.getRawValue();
-        await this.transacoes.criar(dados, {
-          parcelas:
-            v.repeticao === 'parcelada' && v.tipo === 'despesa' ? Number(v.parcelas) : undefined,
-          recorrencia:
-            v.repeticao === 'recorrente'
-              ? { frequencia: v.frequencia, fim: v.fim || null }
-              : undefined,
-        });
-      }
+      const v = this.form.getRawValue();
+      await this.rascunho.concluir<unknown>(() =>
+        original
+          ? this.transacoes.editar(original.id, dados)
+          : this.transacoes.criar(dados, {
+              parcelas:
+                v.repeticao === 'parcelada' && v.tipo === 'despesa'
+                  ? Number(v.parcelas)
+                  : undefined,
+              recorrencia:
+                v.repeticao === 'recorrente'
+                  ? { frequencia: v.frequencia, fim: v.fim || null }
+                  : undefined,
+            }),
+      );
       await this.router.navigateByUrl('/transacoes');
     } catch (erro) {
       this.erro.set(mensagemDeErro(erro));

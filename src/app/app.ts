@@ -5,12 +5,23 @@ import { DadosService } from './application/dados/dados.service';
 import { PerfilService } from './application/perfil/perfil.service';
 import { PreferenciasService } from './application/preferencias/preferencias.service';
 import { type Tema, TEMAS } from './domain/shared/preferencias';
+import { AvisoDesfazer } from './features/compartilhado/aviso-desfazer';
+import { DialogoSaida, RascunhosPendentes } from './features/compartilhado/rascunhos-pendentes';
 import { Avatar } from './ui/avatar/avatar';
 import { Logo } from './ui/logo/logo';
 
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, Logo, Avatar],
+  imports: [
+    RouterOutlet,
+    RouterLink,
+    RouterLinkActive,
+    Logo,
+    Avatar,
+    RascunhosPendentes,
+    AvisoDesfazer,
+    DialogoSaida,
+  ],
   templateUrl: './app.html',
   styleUrl: './app.css',
   changeDetection: ChangeDetectionStrategy.OnPush,

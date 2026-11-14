@@ -11,7 +11,8 @@ export type Colecao =
   | 'contasAgendadas'
   | 'cofrinhos'
   | 'preferencias'
-  | 'perfil';
+  | 'perfil'
+  | 'rascunhos';
 
 export const COLECOES: readonly Colecao[] = [
   'contas',
@@ -23,6 +24,7 @@ export const COLECOES: readonly Colecao[] = [
   'cofrinhos',
   'preferencias',
   'perfil',
+  'rascunhos',
 ];
 
 /**

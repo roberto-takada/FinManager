@@ -88,7 +88,7 @@ export async function desbloquear(page: Page, senha = SENHA): Promise<void> {
   await expect(page.getByRole('heading', { level: 1, name: 'Início' })).toBeVisible();
 }
 
-/** Conteúdo bruto do IndexedDB do app, como texto. */
+/** Conteúdo bruto do IndexedDB do app (todas as stores), como texto. */
 export function lerIndexedDb(page: Page): Promise<string> {
   return page.evaluate(
     () =>
@@ -97,16 +97,23 @@ export function lerIndexedDb(page: Page): Promise<string> {
         pedido.onerror = () => reject(pedido.error);
         pedido.onsuccess = () => {
           const banco = pedido.result;
-          if (!banco.objectStoreNames.contains('cofre')) {
+          const stores = [...banco.objectStoreNames];
+          if (stores.length === 0) {
             banco.close();
             resolve('');
             return;
           }
-          const todos = banco.transaction('cofre').objectStore('cofre').getAll();
-          todos.onsuccess = () => {
+          const transacao = banco.transaction(stores);
+          const conteudo: Record<string, unknown> = {};
+          for (const nome of stores) {
+            const todos = transacao.objectStore(nome).getAll();
+            todos.onsuccess = () => (conteudo[nome] = todos.result);
+          }
+          transacao.oncomplete = () => {
             banco.close();
-            resolve(JSON.stringify(todos.result));
+            resolve(JSON.stringify(conteudo));
           };
+          transacao.onerror = () => reject(transacao.error);
         };
       }),
   );

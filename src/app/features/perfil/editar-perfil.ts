@@ -22,6 +22,8 @@ import { ErroDominio } from '../../domain/shared/erro-dominio';
 import { Avatar } from '../../ui/avatar/avatar';
 import { mensagemDeErro } from '../cofre/compartilhado/mensagens';
 import { AvisoNavegacao } from '../compartilhado/aviso-navegacao';
+import { AvisoRascunho } from '../compartilhado/aviso-rascunho';
+import { rascunhoDoFormulario } from '../compartilhado/rascunho-formulario';
 import { reduzirFoto } from './reduzir-foto';
 
 type Campo = 'nome' | 'email' | 'avatar';
@@ -29,7 +31,7 @@ type Campo = 'nome' | 'email' | 'avatar';
 /** Edição do perfil (`/perfil/editar`, RF-080), com os dados atuais já no formulário. */
 @Component({
   selector: 'app-editar-perfil',
-  imports: [ReactiveFormsModule, RouterLink, Avatar],
+  imports: [ReactiveFormsModule, RouterLink, Avatar, AvisoRascunho],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="max-w-2xl space-y-6">
@@ -39,6 +41,7 @@ type Campo = 'nome' | 'email' | 'avatar';
       <h1 tabindex="-1" class="text-3xl font-bold">Editar perfil</h1>
 
       <form class="space-y-5 cartao" [formGroup]="form" (ngSubmit)="salvar()" novalidate>
+        <app-aviso-rascunho [rascunho]="rascunho" />
         <div class="flex items-center gap-4">
           <app-avatar [avatar]="avatarAtual()" [nome]="valores().nome" [tamanho]="72" />
           <p class="text-sm text-muted">Prévia do avatar</p>
@@ -186,6 +189,8 @@ export class EditarPerfil implements OnInit {
     { initialValue: this.form.getRawValue() },
   );
 
+  /** RF-070 a RF-072: rascunho automático e aviso ao sair sem salvar. */
+  readonly rascunho = rascunhoDoFormulario(this.form);
   protected readonly salvando = signal(false);
   protected readonly processandoFoto = signal(false);
   private readonly erro = signal<{ campo: Campo | null; mensagem: string } | null>(null);
@@ -207,6 +212,7 @@ export class EditarPerfil implements OnInit {
       cor: p.avatar.tipo === 'iniciais' ? p.avatar.cor : 'roxo',
       imagem: p.avatar.tipo === 'foto' ? p.avatar.imagem : '',
     });
+    this.rascunho.iniciar({ chave: 'perfil:editar', titulo: 'Editar perfil' });
   }
 
   protected erroCampo(campo: Campo): string | null {
@@ -237,14 +243,16 @@ export class EditarPerfil implements OnInit {
     }
     this.salvando.set(true);
     try {
-      await this.perfil.salvar({
-        nome: v.nome,
-        email: v.email,
-        avatar:
-          v.tipoAvatar === 'foto'
-            ? { tipo: 'foto', imagem: v.imagem }
-            : { tipo: 'iniciais', cor: v.cor },
-      });
+      await this.rascunho.concluir(() =>
+        this.perfil.salvar({
+          nome: v.nome,
+          email: v.email,
+          avatar:
+            v.tipoAvatar === 'foto'
+              ? { tipo: 'foto', imagem: v.imagem }
+              : { tipo: 'iniciais', cor: v.cor },
+        }),
+      );
       this.aviso.definir('Perfil salvo.');
       await this.router.navigateByUrl('/perfil');
     } catch (e) {

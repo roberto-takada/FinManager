@@ -9,7 +9,7 @@ import { ativo } from '../../domain/shared/entidade';
 import { ErroDominio } from '../../domain/shared/erro-dominio';
 import { buscarAtivo, marcarExcluido, substituir } from '../dados/colecoes';
 import { DadosService } from '../dados/dados.service';
-import { resumoCategoria } from '../historico/resumos';
+import { resumoCategoria } from '../../domain/historico/resumos';
 
 /** Categorias e subcategorias personalizadas (RF-015). */
 @Injectable({ providedIn: 'root' })

@@ -1,7 +1,7 @@
 # FinManager — Documento de Engenharia de Software
 
-> **Versão:** 0.19
-> **Data:** 2026-11-05
+> **Versão:** 0.20
+> **Data:** 2026-11-09
 > **Autor:** Roberto Takada
 > **Status:** Em elaboração — arquitetura, stack, hospedagem e licença definidas (ADR-0001 a ADR-0005)
 > **Documento relacionado:** [ENGENHARIA_DE_REQUISITOS.md](./ENGENHARIA_DE_REQUISITOS.md)
@@ -257,12 +257,20 @@ Decisões de design:
 - Rascunhos expiram após prazo configurável (ex.: 7 dias).
 - **Várias abas** (RNF-014): usar um mecanismo de coordenação entre abas (ex.: `BroadcastChannel` e/ou Web Locks API) para propagar alterações e evitar que uma aba sobrescreva a outra.
 
+**Implementado (RF-070 a RF-072):**
+- Coleção cifrada `rascunhos` (`domain/rascunhos/rascunho.ts`): `{ id, titulo, url, valores, atualizadoEm }`, um por formulário (`transacao:nova`, `conta:editar:<id>`...). Expiram em **7 dias**, no expurgo do desbloqueio. Ficam **fora do backup** (`COLECOES_BACKUP`), por serem trabalho em andamento daquele navegador; o formato do backup não mudou.
+- `RascunhoFormulario` (`features/compartilhado/rascunho-formulario.ts`) observa o formulário e grava **600 ms** depois da última alteração (RNF-011: ≤ 2 s). Voltou ao estado inicial, o rascunho é apagado. Os 8 formulários de cadastro/edição usam: transação, conta, categoria, conta a pagar/receber, novo cofrinho, configurações e movimentação do cofrinho e perfil. Formulários de senha e chave de recuperação **nunca** geram rascunho.
+- **Mesma gravação:** `RascunhoFormulario.concluir(acao)` usa `DadosService.concluirRascunho`, que marca o rascunho a remover na **primeira chamada síncrona** a `alterar` feita pela ação; o registro e a remoção do rascunho vão juntos para o IndexedDB. Se a ação não chamar `alterar` logo de início, o rascunho é removido numa segunda gravação (nunca fica para trás).
+- **RF-071:** depois do desbloqueio, o shell mostra os rascunhos pendentes (`RascunhosPendentes`) com "Restaurar" (abre o formulário já preenchido) e "Descartar"; "Agora não" esconde até o próximo desbloqueio. Abrindo o formulário direto, a oferta aparece nele (`AvisoRascunho`), e o rascunho antigo não é sobrescrito até o usuário escolher.
+- **RF-072:** `beforeunload` quando algum formulário aberto tem alterações; dentro do app, o guard `confirmarSaida` (`canDeactivate`) abre "Sair sem salvar?" (diálogo reutilizável, foco em "Cancelar"). Sair sem salvar descarta o rascunho. Com o cofre bloqueado (manual ou por inatividade) o guard não pergunta: o rascunho fica para depois do desbloqueio. O roteador usa `canceledNavigationResolution: 'computed'`, para o "Voltar" do navegador cancelado não deixar o endereço errado.
+
 ### 5.3 Confirmação de ações significativas (RN-003, RN-005)
 - Componente único e reutilizável de **Diálogo de Confirmação**, para garantir consistência.
 - O diálogo deve: nomear o item afetado, descrever a consequência, ter o botão de ação com verbo explícito ("Excluir conta de luz") e o foco inicial em **Cancelar**.
 - Ações de altíssimo impacto (excluir a conta do usuário) exigem confirmação reforçada (ex.: digitar uma palavra ou a senha).
 - A lista de ações significativas é centralizada em um único ponto do código, espelhando RN-005 (`domain/shared/acoes-significativas.ts`).
 - **Implementado** em `ui/dialogo-confirmacao/` com o `<dialog>` nativo (`showModal()`): foco preso, Esc cancela e o foco volta ao elemento de origem ao fechar, sem dependência extra.
+- **Desfazer (RF-077):** depois de uma exclusão, o shell mostra um aviso com "Desfazer" (`features/compartilhado/aviso-desfazer.ts`), que restaura o item (ou o lote inteiro) do evento de exclusão mais recente numa só gravação (`HistoricoService.desfazerExclusao`). O foco vai para o aviso, já que o botão "Excluir" sumiu com o item. Sem limite de tempo (WCAG 2.2.1): some ao ser fechado, numa nova exclusão ou ao mudar de tela. Fixo no rodapé, com `scroll-padding-bottom` para não esconder o foco (WCAG 2.4.11).
 
 ### 5.4 Histórico e lixeira (RN-004)
 - **Exclusão lógica (soft delete):** registros recebem marcação de excluído com data/hora, em vez de serem apagados.
@@ -272,6 +280,7 @@ Decisões de design:
 - Sem servidor não há tarefa agendada: o **expurgo roda a cada desbloqueio do cofre**, apagando definitivamente o que já expirou (RF-078). Como o app pode ficar meses sem ser aberto, a regra é baseada na data de expiração, não na frequência de execução.
 - Pontos de restauração e backups exportados podem conter itens já expurgados; isso é esperado e deve ser explicado na tela da lixeira.
 - Consultas comuns filtram automaticamente registros excluídos, para evitar que apareçam por engano.
+- **Exclusão definitiva e esvaziar a lixeira (RF-079, implementado):** com confirmação (RN-005 a/c). Apagar um item leva junto os itens **da lixeira** que dependem dele, de forma transitiva (conta → transações, recorrências e contas a pagar; categoria → subcategorias → ...), porque eles não poderiam mais ser restaurados; a confirmação lista esses itens. Itens ativos nunca dependem de itens da lixeira, porque contas e categorias em uso não podem ser excluídas. Os eventos com cópias do item (`estadoAnterior`) também são apagados, já que "apagar definitivamente" não pode deixar o dado no histórico. Fica um evento `exclusaoDefinitiva` por tipo, sem conteúdo, só com a quantidade ("2 itens"). É a única exceção ao *append-only*, equivalente a antecipar o expurgo de 180 dias.
 
 ### 5.5 Inteligência artificial (RN-009)
 **Decisão (ADR-0004): toda a IA roda localmente no navegador**, sem chamadas de rede. Abordagem progressiva, do mais simples ao mais complexo:
@@ -382,6 +391,13 @@ Regras de implementação:
 - **Acessibilidade (RF-082):** tamanho do texto (100%, 112,5%, 125% da raiz, que escala tudo, pois a interface usa `rem`), alto contraste (tokens com ≥ 7:1, bordas visíveis e foco de 3 px, nos temas claro e escuro) e reduzir animações (desliga transições e a animação dos gráficos, além da preferência do sistema). Ficam em `preferencias.acessibilidade` (cifradas) e viram classes no `<html>` (`fonte-grande`/`fonte-maior`, `contraste-alto`, `animacoes-reduzidas`) aplicadas por `core/tema`. Como toda preferência, só valem depois do desbloqueio; a tela explica que, antes disso, o zoom do navegador resolve. Os ajustes são mesclados dentro de `DadosService.alterar`, para que cliques rápidos não se sobrescrevam.
 - **Exportar todos os dados (RF-084, parte de exportação do RF-090):** arquivo `.json` no formato da seção 5.7, cifrado com a DEK pela porta `CIFRADOR_BACKUP` (AES-256-GCM, IV novo a cada exportação, AAD `finmanager:backup:v1`). O conteúdo decifrado é `{ versao: 1, colecoes: { ...todas as coleções } }`. A importação (RF-091 a RF-099) ainda não existe; a tela avisa. Os nomes dos arquivos exportados estão no `.gitignore` (RNF-063).
 - **Dados de demonstração:** 12 meses de uso e um perfil fictício (Ana Exemplo, e-mail em `example.com`, domínio reservado), para os relatórios trimestral, semestral e anual terem comparação.
+
+### 5.6.8 Uso offline e instalação (implementado, RF-073)
+- `@angular/service-worker` (MIT) gera o `ngsw-worker.js` a partir do `ngsw-config.json`. O grupo `app` (*prefetch*) guarda `index.html`, todos os JS/CSS (inclusive as telas carregadas sob demanda), o manifesto e as fontes latinas; ícones e as demais fontes entram sob demanda. Não há `dataGroups`: o app não faz requisições de dados, e **nenhum dado do usuário passa pelo service worker** (eles ficam cifrados no IndexedDB).
+- **Trusted Types:** `serviceWorker.register` só aceita uma URL confiável. Em vez de `provideServiceWorker` com uma política `default`, que valeria para qualquer string, `core/pwa/service-worker.ts` registra o script com uma política própria (`finmanager-sw`, autorizada na CSP) que aceita **somente** `ngsw-worker.js`. O registro acontece depois que a primeira tela fica estável e só em produção.
+- **Instalável:** `manifest.webmanifest` com `start_url`/`scope` relativos (funcionam com o base-href `/FinManager/`), modo `standalone` e ícones PNG 192/512 e *maskable*, gerados a partir do monograma.
+- **Atualizações:** o service worker baixa a versão nova em segundo plano e a usa na próxima abertura do app. Não há aviso de "nova versão": recarregar bloquearia o cofre, e os rascunhos (5.2) cobrem esse caso.
+- **Testes:** o E2E offline roda contra o build servido como arquivos estáticos (`scripts/servir-estatico.mjs`, porta 4301), como no GitHub Pages. O servidor de desenvolvimento não entrega os mesmos bytes do build, e o service worker confere o hash de cada arquivo.
 
 ### 5.7 Formato do arquivo de backup (RN-012)
 Arquivo `.json` com um cabeçalho legível e um conteúdo totalmente cifrado:
@@ -827,3 +843,4 @@ FinManager/
 | 0.17 | 2026-11-08 | Roberto Takada | Decisões da dashboard confirmadas pelo usuário (5.6.5); arrastar e soltar (RF-046) e seletor de período (RF-047) adiados para depois da 1.0. |
 | 0.18 | 2026-11-08 | Roberto Takada | Relatórios (5.6.6) e perfil, acessibilidade e exportação (5.6.7) implementados; exemplo do formato de backup (5.7) atualizado para os envelopes Argon2id reais. |
 | 0.19 | 2026-11-09 | Roberto Takada | Deploy no GitHub Pages implementado (workflow de publicação e `build:pages`), seção 9.5. |
+| 0.20 | 2026-11-09 | Roberto Takada | Seção 5.8 dos requisitos completa: rascunhos cifrados e aviso de saída (5.2), "Desfazer" (5.3), exclusão definitiva e esvaziar a lixeira (5.4), uso offline e instalação (nova 5.6.8). |

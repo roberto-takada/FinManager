@@ -16,7 +16,7 @@ import {
 } from '../../domain/transacoes/transacao';
 import { buscarAtivo, marcarExcluido, substituir } from '../dados/colecoes';
 import { DadosService } from '../dados/dados.service';
-import { resumoTransacao } from '../historico/resumos';
+import { resumoTransacao } from '../../domain/historico/resumos';
 import { gerarOcorrencias } from '../recorrencias/gerar-ocorrencias';
 
 /**

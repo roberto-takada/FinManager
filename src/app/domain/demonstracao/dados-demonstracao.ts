@@ -11,6 +11,8 @@ import type {
   MovimentacaoCofrinho,
 } from '../cofrinhos/cofrinho';
 import type { ContaFinanceira, TipoConta } from '../contas/conta';
+import { criarEvento, type EventoHistorico } from '../historico/historico';
+import { resumoContaAgendada, resumoTransacao } from '../historico/resumos';
 import type { Perfil } from '../perfil/perfil';
 import type { Recorrencia } from '../recorrencias/recorrencia';
 import { type DataISO, somarDias, somarMeses } from '../shared/data';
@@ -31,6 +33,7 @@ export interface DadosDemonstracao {
   readonly contasAgendadas: ContaAgendada[];
   readonly cofrinhos: Cofrinho[];
   readonly perfil: Perfil[];
+  readonly historico: EventoHistorico[];
 }
 
 export const MESES_DEMONSTRACAO = 12;
@@ -444,6 +447,117 @@ export function gerarDadosDemonstracao(opcoes: {
     ),
   ];
 
+  // ---- Lixeira e histórico (RF-075 a RF-079) -------------------------------
+  // Exclusões (uma perto de expirar, para mostrar a contagem de dias), uma correção de
+  // valor e uma exclusão desfeita, para que "Histórico e lixeira" tenha o que mostrar.
+  const historico: EventoHistorico[] = [];
+  const diasAtras = (dias: number) => new Date(opcoes.agora.getTime() - dias * 86_400_000);
+  const registrar = (dados: Parameters<typeof criarEvento>[0], dias: number) =>
+    historico.push(criarEvento(dados, diasAtras(dias), gerarId()));
+  const excluidoHa = <T extends { excluidoEm: string | null; atualizadoEm: string }>(
+    item: T,
+    dias: number,
+  ): T => ({
+    ...item,
+    excluidoEm: diasAtras(dias).toISOString(),
+    atualizadoEm: diasAtras(dias).toISOString(),
+  });
+
+  const lixo = (dados: DadosTransacao, dias: number) => {
+    const t: Transacao = { ...base(), ...dados, recorrenciaId: null, parcela: null };
+    transacoes.push(excluidoHa(t, dias));
+    registrar(
+      {
+        acao: 'exclusao',
+        entidade: 'transacao',
+        entidadeId: t.id,
+        resumo: resumoTransacao(t),
+        estadoAnterior: t,
+      },
+      dias,
+    );
+  };
+  lixo(
+    {
+      tipo: 'despesa',
+      valor: dinheiro(212_40),
+      data: somarDias(hoje, -3),
+      descricao: 'Supermercado (lançado em dobro)',
+      categoriaId: cat('Mercado'),
+      contaId: cartao.id,
+      contaDestinoId: null,
+    },
+    2,
+  );
+  lixo(
+    {
+      tipo: 'despesa',
+      valor: dinheiro(29_90),
+      data: somarDias(hoje, -176),
+      descricao: 'Assinatura de revista cancelada',
+      categoriaId: cat('Assinaturas'),
+      contaId: cartao.id,
+      contaDestinoId: null,
+    },
+    175,
+  );
+
+  const academia = agendada({
+    tipo: 'pagar',
+    descricao: 'Mensalidade da academia',
+    valor: dinheiro(99_00),
+    vencimento: somarDias(hoje, -40),
+    categoria: 'Saúde',
+    contaId: corrente.id,
+    recorrencia: mensal,
+  });
+  registrar(
+    {
+      acao: 'exclusao',
+      entidade: 'contaAgendada',
+      entidadeId: academia.id,
+      resumo: resumoContaAgendada(academia),
+      estadoAnterior: academia,
+    },
+    38,
+  );
+
+  // Correção de valor digitado errado (RN-005 b): o estado anterior fica no histórico.
+  const corrigida = transacoes.find(
+    (t) => t.descricao === 'Posto de combustível' && t.data <= somarDias(hoje, -10),
+  );
+  if (corrigida) {
+    const anterior = { ...corrigida, valor: dinheiro(corrigida.valor.unidades * 10) };
+    registrar(
+      {
+        acao: 'edicao',
+        entidade: 'transacao',
+        entidadeId: corrigida.id,
+        resumo: resumoTransacao(anterior),
+        estadoAnterior: anterior,
+      },
+      9,
+    );
+  }
+
+  // Exclusão desfeita logo em seguida (RF-077).
+  const restaurada = transacoes.find(
+    (t) => t.descricao === 'Restaurante' && t.data <= somarDias(hoje, -20),
+  );
+  if (restaurada) {
+    const dados = {
+      entidade: 'transacao' as const,
+      entidadeId: restaurada.id,
+      resumo: resumoTransacao(restaurada),
+    };
+    registrar({ ...dados, acao: 'exclusao', estadoAnterior: restaurada }, 20);
+    registrar(
+      { ...dados, acao: 'restauracao', estadoAnterior: excluidoHa(restaurada, 20) },
+      20 - 1 / 1440,
+    );
+  }
+  historico.sort((a, b) => a.ocorridoEm.localeCompare(b.ocorridoEm));
+
   // ---- Perfil (RF-080): pessoa inventada; e-mail no domínio reservado example.com.
   const perfil: Perfil[] = [
     {
@@ -459,8 +573,9 @@ export function gerarDadosDemonstracao(opcoes: {
     categorias,
     transacoes,
     recorrencias,
-    contasAgendadas: pagas,
+    contasAgendadas: [...pagas, excluidoHa(academia, 38)],
     cofrinhos,
     perfil,
+    historico,
   };
 }

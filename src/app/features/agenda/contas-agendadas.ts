@@ -11,6 +11,7 @@ import { formatarData } from '../../domain/shared/data';
 import { formatarDinheiro } from '../../domain/shared/dinheiro';
 import { DialogoConfirmacao } from '../../ui/dialogo-confirmacao/dialogo-confirmacao';
 import { mensagemDeErro } from '../cofre/compartilhado/mensagens';
+import { DesfazerExclusao } from '../compartilhado/aviso-desfazer';
 import { AvisoNavegacao } from '../compartilhado/aviso-navegacao';
 import { ConfiguracaoNotificacoes } from './configuracao-notificacoes';
 
@@ -123,6 +124,7 @@ export class ContasAgendadas {
   protected readonly formatar = formatarDinheiro;
 
   protected readonly alvo = signal<ContaAgendada | null>(null);
+  private readonly desfazer = inject(DesfazerExclusao);
   protected readonly mensagem = signal<string | null>(inject(AvisoNavegacao).consumir());
   protected readonly erro = signal(false);
   protected readonly mensagemExclusao = computed(() => {
@@ -143,8 +145,8 @@ export class ContasAgendadas {
     if (!conta) return;
     try {
       await this.agenda.excluir(conta.id);
-      this.erro.set(false);
-      this.mensagem.set('Conta excluída. Ela está na lixeira.');
+      this.mensagem.set(null);
+      this.desfazer.oferecer(`"${conta.descricao}" excluída e enviada à lixeira.`);
     } catch (e) {
       this.erro.set(true);
       this.mensagem.set(mensagemDeErro(e));

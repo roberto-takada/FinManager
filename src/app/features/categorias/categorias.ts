@@ -4,6 +4,7 @@ import { CategoriasService } from '../../application/categorias/categorias.servi
 import type { Categoria, TipoMovimento } from '../../domain/categorias/categoria';
 import { DialogoConfirmacao } from '../../ui/dialogo-confirmacao/dialogo-confirmacao';
 import { mensagemDeErro } from '../cofre/compartilhado/mensagens';
+import { DesfazerExclusao } from '../compartilhado/aviso-desfazer';
 import { AvisoNavegacao } from '../compartilhado/aviso-navegacao';
 
 /** Categorias e subcategorias (RF-015). Criar e editar ficam em páginas próprias. */
@@ -92,6 +93,7 @@ export class Categorias {
     { tipo: 'receita' as const, rotulo: 'Receitas' },
   ];
   protected readonly alvo = signal<Categoria | null>(null);
+  private readonly desfazer = inject(DesfazerExclusao);
   protected readonly mensagem = signal<string | null>(inject(AvisoNavegacao).consumir());
   protected readonly erro = signal(false);
   protected readonly mensagemExclusao = computed(() =>
@@ -108,8 +110,8 @@ export class Categorias {
     if (!c) return;
     try {
       await this.categorias.excluir(c.id);
-      this.erro.set(false);
-      this.mensagem.set('Categoria excluída. Ela está na lixeira.');
+      this.mensagem.set(null);
+      this.desfazer.oferecer(`Categoria "${c.nome}" excluída e enviada à lixeira.`);
     } catch (e) {
       this.erro.set(true);
       this.mensagem.set(mensagemDeErro(e));

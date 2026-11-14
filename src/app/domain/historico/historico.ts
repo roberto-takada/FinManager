@@ -7,7 +7,8 @@ import type { Entidade } from '../shared/entidade';
 export const DIAS_RETENCAO = 180;
 const MS_POR_DIA = 86_400_000;
 
-export type AcaoHistorico = 'exclusao' | 'edicao' | 'restauracao' | 'zeramento' | 'encerramento';
+export type AcaoHistorico =
+  'exclusao' | 'edicao' | 'restauracao' | 'zeramento' | 'encerramento' | 'exclusaoDefinitiva';
 export type TipoEntidade =
   'transacao' | 'conta' | 'categoria' | 'recorrencia' | 'contaAgendada' | 'cofrinho';
 
@@ -17,6 +18,7 @@ export const ACOES_HISTORICO: Readonly<Record<AcaoHistorico, string>> = {
   restauracao: 'Restauração',
   zeramento: 'Zeramento',
   encerramento: 'Encerramento',
+  exclusaoDefinitiva: 'Exclusão definitiva',
 };
 
 export const ENTIDADES: Readonly<Record<TipoEntidade, string>> = {
@@ -80,6 +82,11 @@ export function expirou(entidade: Entidade, agora: Date): boolean {
 /** RF-078: remove definitivamente itens e eventos com mais de 180 dias. */
 export function expurgar<T extends Entidade>(itens: readonly T[], agora: Date): T[] {
   return itens.filter((item) => !expirou(item, agora));
+}
+
+/** Quantidade por extenso, ex.: "1 item", "3 itens". */
+export function quantidadeItens(n: number): string {
+  return `${n} ${n === 1 ? 'item' : 'itens'}`;
 }
 
 export function expurgarEventos(
