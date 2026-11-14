@@ -1,0 +1,65 @@
+# Testes de ponta a ponta e de acessibilidade (Playwright + axe) nos três motores de
+# navegador (ENGENHARIA_DE_SOFTWARE §9.4). Roda em todo pull request e em todo push na main.
+# Cada navegador é um job separado, em paralelo: uma falha no WebKit não esconde o
+# resultado do Chromium e do Firefox.
+name: Testes E2E
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch: # permite rodar manualmente pela aba "Actions"
+
+permissions:
+  contents: read
+
+# Um push novo no mesmo PR/branch cancela a execução anterior, que ficou desatualizada.
+concurrency:
+  group: e2e-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  e2e:
+    name: E2E (${{ matrix.navegador }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        navegador: [chromium, firefox, webkit]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 12
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 26
+          cache: pnpm
+
+      - name: Instalar dependências
+        run: pnpm install --frozen-lockfile
+
+      # --with-deps instala também as bibliotecas do sistema que o navegador exige.
+      - name: Instalar o navegador do Playwright
+        run: pnpm exec playwright install --with-deps ${{ matrix.navegador }}
+
+      # O Playwright sobe sozinho os dois servidores (playwright.config.ts): o build de
+      # produção (porta 4300) e o build servido como arquivos estáticos (porta 4301),
+      # usado no teste de uso offline (RF-073). Com CI=true: retries, forbidOnly e WebKit.
+      - name: Rodar os testes E2E
+        run: pnpm e2e --project=${{ matrix.navegador }}
+
+      # Em caso de falha: relatório HTML e traces (abra com "pnpm exec playwright show-trace").
+      # Os testes usam só dados fictícios, então os artefatos não expõem nada real.
+      - name: Guardar relatório e traces
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: relatorio-e2e-${{ matrix.navegador }}
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 7

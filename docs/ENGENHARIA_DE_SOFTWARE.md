@@ -1,7 +1,7 @@
 # FinManager — Documento de Engenharia de Software
 
-> **Versão:** 0.20
-> **Data:** 2026-11-09
+> **Versão:** 0.21
+> **Data:** 2026-11-14
 > **Autor:** Roberto Takada
 > **Status:** Em elaboração — arquitetura, stack, hospedagem e licença definidas (ADR-0001 a ADR-0005)
 > **Documento relacionado:** [ENGENHARIA_DE_REQUISITOS.md](./ENGENHARIA_DE_REQUISITOS.md)
@@ -664,6 +664,12 @@ GitHub Actions:
 7. Varredura de vulnerabilidades (`pnpm audit`) e de segredos.
 8. *(Na `main`)* Publicação da build estática.
 
+**Implementado** em dois workflows:
+- `deploy-pages.yml` (push na `main`): itens 1 a 5 e 8.
+- `e2e.yml` (todo PR e push na `main`): item 6, com um job por navegador (Chromium, Firefox e WebKit) em paralelo e `fail-fast: false`. Com `CI=true`, o Playwright usa 2 *retries*, `forbidOnly`, o WebKit e o relatório HTML, que é guardado por 7 dias como artefato junto com os traces quando algum teste falha. O teste offline (RF-073) usa o segundo servidor (build estático na porta 4301).
+- **Proteção da `main`** (configurar no GitHub, *Settings → Branches*): exigir PR e os checks `E2E (chromium)`, `E2E (firefox)` e `E2E (webkit)` antes do merge. Assim o deploy, que roda no push da `main`, só publica o que já passou nos E2E.
+- Item 7 (auditoria de dependências e segredos) ainda não está implementado.
+
 ### 9.5 Ambientes
 | Ambiente | Uso |
 |---|---|
@@ -671,7 +677,7 @@ GitHub Actions:
 | Demonstração | Versão publicada no **GitHub Pages** (`https://<usuario>.github.io/FinManager/`), com modo demonstração para visitantes do portfólio (RNF-061, RNF-062). |
 | Uso pessoal | A mesma build publicada; os dados reais ficam apenas no navegador do usuário, nunca no repositório nem na hospedagem. |
 
-Como não há backend, o "deploy" é apenas publicar arquivos estáticos: o GitHub Actions faz o build com `--base-href /FinManager/`, copia `index.html` para `404.html` (rotas da SPA) e publica no GitHub Pages a cada merge na `main`. **Implementado** em `.github/workflows/deploy-pages.yml`: formatação, lint, tipos e testes unitários antes do `pnpm build:pages` (`scripts/preparar-pages.mjs` gera `404.html` e `.nojekyll`); se algo falhar, nada é publicado. Os E2E no CI ficam para um workflow próprio.
+Como não há backend, o "deploy" é apenas publicar arquivos estáticos: o GitHub Actions faz o build com `--base-href /FinManager/`, copia `index.html` para `404.html` (rotas da SPA) e publica no GitHub Pages a cada merge na `main`. **Implementado** em `.github/workflows/deploy-pages.yml`: formatação, lint, tipos e testes unitários antes do `pnpm build:pages` (`scripts/preparar-pages.mjs` gera `404.html` e `.nojekyll`); se algo falhar, nada é publicado. Os E2E rodam no workflow próprio `e2e.yml` (9.4).
 
 ---
 
@@ -844,3 +850,4 @@ FinManager/
 | 0.18 | 2026-11-08 | Roberto Takada | Relatórios (5.6.6) e perfil, acessibilidade e exportação (5.6.7) implementados; exemplo do formato de backup (5.7) atualizado para os envelopes Argon2id reais. |
 | 0.19 | 2026-11-09 | Roberto Takada | Deploy no GitHub Pages implementado (workflow de publicação e `build:pages`), seção 9.5. |
 | 0.20 | 2026-11-09 | Roberto Takada | Seção 5.8 dos requisitos completa: rascunhos cifrados e aviso de saída (5.2), "Desfazer" (5.3), exclusão definitiva e esvaziar a lixeira (5.4), uso offline e instalação (nova 5.6.8). |
+| 0.21 | 2026-11-14 | Roberto Takada | Testes E2E no CI (`e2e.yml`) nos três motores de navegador; recomendação de proteção da `main` (9.4). |

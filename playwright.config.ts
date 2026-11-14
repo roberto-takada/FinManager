@@ -30,7 +30,8 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: CI,
   retries: CI ? 2 : 0,
-  reporter: CI ? 'github' : 'list',
+  // No CI: anotações nos arquivos do PR + relatório HTML, guardado como artefato se falhar.
+  reporter: CI ? [['github'], ['html', { open: 'never' }]] : 'list',
   // O servidor de desenvolvimento compila as telas sob demanda e fica lento sob carga.
   expect: { timeout: MODO_DEV ? 10_000 : 5_000 },
   use: {

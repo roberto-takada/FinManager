@@ -1,6 +1,7 @@
 # FinManager
 
 [![Publicar no GitHub Pages](https://github.com/roberto-takada/FinManager/actions/workflows/deploy-pages.yml/badge.svg)](https://github.com/roberto-takada/FinManager/actions/workflows/deploy-pages.yml)
+[![Testes E2E](https://github.com/roberto-takada/FinManager/actions/workflows/e2e.yml/badge.svg)](https://github.com/roberto-takada/FinManager/actions/workflows/e2e.yml)
 [![Licença: GPL-3.0-or-later](https://img.shields.io/badge/licen%C3%A7a-GPL--3.0--or--later-blue)](./LICENSE)
 
 Gerenciador de finanças pessoais **local-first**, **sem servidor** e com **criptografia ponta a ponta**. Todos os dados ficam cifrados no seu navegador; nada é enviado pela rede.
